@@ -1,0 +1,122 @@
+@charset "UTF-8";
+
+#main > .layout-content > .body > .other-container > .other-content > .experience {
+    left: -0.5rem;
+    width: 100%;
+    opacity: 0;
+    pointer-events: none;
+    position: relative;
+    transition-duration: 250ms;
+    transition-property: left, opacity;
+    transition-timing-function: ease;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .experience.visible {
+    left: 0;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .experience > .titleBox {
+    width: 100%;
+    margin-top: 1.75rem;
+
+    position: relative;
+    overflow: hidden;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .experience > .titleBox > .title {
+    display: inline-block;
+    position: relative;
+    letter-spacing: 7px;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: #ffffff;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .experience > .titleBox > .titleLine {
+    content: "";
+    margin-left: 1.5rem;
+    position: absolute;
+    width: 1000rem;
+    height: 0.0625rem;
+    background-color: #ffffff;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+
+#main > .layout-content > .body > .other-container > .other-content > .experience > .experienceBox {
+    width: 100%;
+    margin-top: 2.5rem;
+    padding: 0 3rem;
+
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: repeat(2, 1fr);
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .experience > .experienceBox > .buttonBox {
+    background-color: #efeff1;
+    border-radius: 0.5rem;
+    box-sizing: border-box;
+    cursor: pointer;
+    font: inherit;
+    padding: 0.75rem 1rem 2rem 1rem;
+    position: relative;
+    text-align: left;
+
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .experience > .experienceBox > .buttonBox > .title {
+    width: 100%;
+    border-bottom: 0.0625rem solid #212121;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.25rem;
+
+    color: #212121;
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .experience > .experienceBox > .buttonBox > .detail {
+    color: #707070;
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 500;
+    line-height: 1.375;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .experience > .experienceBox > .buttonBox > .goto {
+    right: 0.5rem;
+    bottom: 0.5rem;
+
+    color: #707070;
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 500;
+
+    position: absolute;
+}
+
+
+
+/* 화면의 가로 크기가 60rem(960px) 이하일때만 적용할 선택자 */
+@media screen and (max-width: 60rem) {
+    #main > .layout-content > .body > .other-container > .other-content > .certificate > .certificateBox > .certificateName > .name {
+        font-size: 1.75rem;
+    }
+}
+
+/* 화면의 가로 크기가 45rem(720px) 이하일때만 적용할 선택자 */
+@media screen and (max-width: 45rem) {
+    #main > .layout-content > .body > .other-container > .other-content > .experience > .experienceBox {
+        grid-template-columns: repeat(1, 1fr);
+    }
+}

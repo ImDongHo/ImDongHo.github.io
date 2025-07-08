@@ -1,0 +1,224 @@
+@charset "UTF-8";
+
+#main > .layout-content > .body > .other-container > .other-content > .career {
+    left: -0.5rem;
+    width: 100%;
+    opacity: 0;
+    pointer-events: none;
+    position: relative;
+    transition-duration: 250ms;
+    transition-property: left, opacity;
+    transition-timing-function: ease;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .career.visible {
+    left: 0;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .career > .titleBox {
+    width: 100%;
+    margin-top: 1.75rem;
+    position: relative;
+    overflow: hidden;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .career > .titleBox > .title {
+    display: inline-block;
+    position: relative;
+    letter-spacing: 7px;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: #ffffff;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .career > .titleBox > .titleLine {
+    content: "";
+    margin-left: 1.5rem;
+    position: absolute;
+    width: 1000rem;
+    height: 0.0625rem;
+    background-color: #ffffff;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .career > .careerBox {
+    padding-top: 2.5rem;
+    align-items: flex-start;
+    display: flex;
+    flex-direction: row;
+    gap: 3rem;
+    justify-content: flex-start;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerName {
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    justify-content: flex-start;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerName > .name {
+    width: 6rem;
+    color: #ffffff;
+    font: inherit;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerName > .term {
+    color: #ffffff;
+    font: inherit;
+    font-size: 1.5rem;
+    font-weight: 100;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerContent {
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    justify-content: flex-start;
+    flex-grow: 1;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerContent > .list {
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    justify-content: flex-start;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerContent > .list > .item {
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    justify-content: flex-start;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerContent > .list > .item > .name {
+    color: #ffffff;
+    font: inherit;
+    font-size: 1.25rem;
+    font-weight: 400;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerContent > .list > .item > .detail {
+    color: #ffffff;
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 300;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerContent > .list > .item > .etcBox {
+    margin-top: 0.75rem;
+    align-items: flex-start;
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    justify-content: flex-start;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerContent > .list > .item > .etcBox > .etc {
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    justify-content: flex-start;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerContent > .list > .item > .etcBox > .etc > .subName {
+    color: #ffffff;
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 1000;
+    margin-left: 0.25rem;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerContent > .list > .item > .etcBox > .etc > .box {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerContent > .list > .item > .etcBox > .etc > .box > .icon {
+    width: 3.5rem;
+    height: 3.5rem;
+    background-color: #0c0c0c;
+    border-radius: 1rem;
+    position: relative;
+
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerContent > .list > .item > .etcBox > .etc > .box > .icon > .image {
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
+
+
+
+/* 화면의 가로 크기가 60rem(960px) 이하일때만 적용할 선택자 */
+@media screen and (max-width: 60rem) {
+    #main > .layout-content > .body > .other-container > .other-content > .career > .careerBox {
+        gap: 1rem;
+    }
+
+    #main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerName > .name {
+        font-size: 1.75rem;
+    }
+
+    #main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerName > .term {
+        font-size: 1.25rem;
+    }
+}
+
+/* 화면의 가로 크기가 30rem(480px) 이하일때만 적용할 선택자 */
+@media screen and (max-width: 30rem) {
+    #main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerContent > .list > .item > .etcBox {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}
+
+
+/* 화면의 가로 크기가 22rem(352px) 이하일때만 적용할 선택자 */
+@media screen and (max-width: 22rem) {
+    #main > .layout-content > .body > .other-container > .other-content > .career > .careerBox {
+        gap: 0;
+    }
+
+    #main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerName > .name {
+        font-size: 1.25rem;
+    }
+
+    #main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerName > .term {
+        font-size: 1rem;
+    }
+
+    #main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerContent > .list > .item > .name {
+        font-size: 1rem;
+        font-weight: 400;
+    }
+
+    #main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerContent > .list > .item > .detail {
+        font-size: 0.85rem;
+        font-weight: 300;
+    }
+
+    #main > .layout-content > .body > .other-container > .other-content > .career > .careerBox > .careerContent > .list > .item > .etcBox {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}

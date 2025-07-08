@@ -1,0 +1,435 @@
+@charset "UTF-8";
+
+@import "./main/career.css";
+@import "./main/project.css";
+@import "./main/education.css";
+@import "./main/certificate.css";
+@import "./main/experience.css";
+
+#main {
+    position: relative;
+}
+
+#main > .screen {
+    width: 100%;
+    height: 100vh;
+    min-height: 100vh;
+    max-height: 100vh;
+    top: 0;
+
+    background-image: url("../../images/screen.jpg");
+    background-position: top center;
+    background-repeat: no-repeat;
+    background-size: cover;
+
+    filter: grayscale(100%);
+    position: sticky;
+}
+
+#main > .screen > .container {
+    top: 50%;
+    width: 100%;
+    position: relative;
+    box-sizing: border-box;
+
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+
+    transform: translateY(-50%);
+}
+
+#main > .screen > .container > .introduce {
+    color: #232323;
+    font-size: 9rem;
+    font-weight: 600;
+}
+
+#main > .screen > .container > .name {
+    color: #424242;
+    font-size: 2rem;
+    font-weight: 400;
+}
+
+#main > .screen > .container > .back {
+    color: #b4b4b4;
+    font-size: 7rem;
+    font-weight: 500;
+
+    top: 0;
+    transform: translateY(-75%);
+    position: absolute;
+    z-index: -1;
+}
+
+#main > .screen > .down {
+    animation: bounce 2s ease infinite;
+
+    position: absolute;
+    bottom: 3rem;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-30px);
+    }
+    60% {
+        transform: translateY(-15px);
+    }
+}
+
+#main > .layout-content {
+    width: 100%;
+    padding: 5rem 4.5rem;
+    background-color: #232323;
+
+    position: relative;
+}
+
+#main > .layout-content > .title {
+    color: #ffffff;
+    font-size: 3.75rem;
+    font-weight: 900;
+}
+
+#main > .layout-content > .body {
+    align-content: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#main > .layout-content > .body > .profile-container {
+    padding-top: 3rem;
+
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    justify-content: center;
+}
+
+#main > .layout-content > .body > .profile-container > .profile {
+    width: 40vh;
+    height: 30vh;
+    object-fit: cover;
+    border-radius: 999rem;
+}
+
+#main > .layout-content > .body > .profile-container > .character {
+    margin-bottom: 2rem;
+    align-content: flex-start;
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    justify-content: stretch;
+}
+
+#main > .layout-content > .body > .profile-container > .character > .character-category {
+    color: #ffffff;
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+#main > .layout-content > .body > .profile-container > .introduce {
+    color: #efeff1;
+    font: inherit;
+    font-size: 1.4rem;
+    font-weight: 600;
+    line-height: 1.5;
+    text-align: center;
+}
+
+#main > .layout-content > .body > .profile-container > .introduce > .accent {
+    color: #efeff1;
+    font: inherit;
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+#main > .layout-content > .body > .skill-container {
+    padding-top: 5rem;
+
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    justify-content: flex-start;
+}
+
+#main > .layout-content > .body > .skill-container > .title {
+    color: #ffffff;
+    font-size: 2.75rem;
+    font-weight: 700;
+}
+
+#main > .layout-content > .body > .skill-container > .container {
+    display: grid;
+    gap: 2.5rem;
+    grid-template-columns: repeat(3, 1fr);
+}
+
+#main > .layout-content > .body > .skill-container > .container > .box {
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    justify-content: flex-start;
+}
+
+#main > .layout-content > .body > .skill-container > .container > .box > .subTitle {
+    color: #ffffff;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+#main > .layout-content > .body > .skill-container > .container > .box > .category {
+    display: grid;
+    gap: 1rem;
+}
+
+#main > .layout-content > .body > .skill-container > .container > .box > .category.skill {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+#main > .layout-content > .body > .skill-container > .container > .box > .category.tools {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+#main > .layout-content > .body > .skill-container > .container > .box > .category.etc {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+#main > .layout-content > .body > .skill-container > .container > .box > .category > .icon {
+    width: 3.5rem;
+    height: 3.5rem;
+    background-color: #0c0c0c;
+    border-radius: 1rem;
+    position: relative;
+
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#main > .layout-content > .body > .skill-container > .container > .box > .category > .icon > .image {
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
+#main > .layout-content > .body > .other-container {
+    width: 100%;
+    box-sizing: border-box;
+    padding-top: 5rem;
+    position: relative;
+
+    align-items: flex-start;
+    display: flex;
+    flex-direction: row;
+    gap: 3rem;
+    justify-content: flex-start;
+}
+
+#main > .layout-content > .body > .other-container > .category {
+    top: 3rem;
+    position: sticky;
+
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    justify-content: flex-start;
+}
+
+#main > .layout-content > .body > .other-container > .category > .a {
+    background-color: transparent;
+    color: #373737;
+    font: inherit;
+    font-size: 3.75rem;
+    font-weight: 900;
+}
+
+#main > .layout-content > .body > .other-container > .other-content {
+    width: 100%;
+    flex-grow: 1;
+    box-sizing: border-box;
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 5rem;
+    justify-content: flex-start;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .contact {
+    width: auto;
+    margin-top: 30rem;
+    margin-bottom: 5rem;
+
+    align-self: center;
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .contact > .title {
+    color: #ffffff;
+    font: inherit;
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .contact > .content-container {
+    width: 100%;
+    background-color: #ffffff;
+    border-radius: 0.5rem;
+    padding: 2rem;
+
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    justify-content: flex-start;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .contact > .content-container > .content {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .contact > .content-container > .content > .main {
+    width: 5rem;
+    margin-right: 1rem;
+
+    font: inherit;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .contact > .content-container > .content > .sub {
+    flex-grow: 1;
+
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+
+
+
+/* 화면의 가로 크기가 75rem(1200px) 이하일때만 적용할 선택자 */
+@media screen and (max-width: 75rem) {
+    #main > .layout-content > .body > .other-container > .category > .a {
+        font-size: 3rem;
+    }
+}
+
+/* 화면의 가로 크기가 60rem(960px) 이하일때만 적용할 선택자 */
+@media screen and (max-width: 60rem) {
+    #main > .screen > .container > .introduce {
+        font-size: 5rem;
+    }
+
+    #main > .screen > .container > .name {
+        font-size: 1.5rem;
+    }
+
+    #main > .layout-content {
+        padding: 5rem 2.5rem;;
+    }
+
+    #main > .layout-content > .title {
+        font-size: 3rem;
+    }
+
+    #main > .layout-content > .body > .profile-container > .profile {
+        width: 20vh;
+        height: 20vh;
+    }
+
+    #main > .layout-content > .body > .skill-container > .title {
+        font-size: 2.3rem;
+    }
+
+    #main > .layout-content > .body > .skill-container > .container {
+        gap: 2rem;
+        grid-template-columns: repeat(1, 1fr);
+    }
+
+    #main > .layout-content > .body > .skill-container > .container > .box {
+        gap: 1rem;
+    }
+
+    #main > .layout-content > .body > .other-container > .category {
+        display: none;
+    }
+}
+
+/* 화면의 가로 크기가 30rem(480px) 이하일때만 적용할 선택자 */
+@media screen and (max-width: 30rem) {
+    #main > .screen > .container > .introduce {
+        font-size: 3rem;
+    }
+
+    #main > .screen > .container > .name {
+        font-size: 1rem;
+    }
+
+    #main > .layout-content > .body > .profile-container > .character > .character-category {
+        font-size: 1rem;
+        font-weight: 500;
+    }
+
+    #main > .layout-content > .body > .profile-container > .introduce {
+        font-size: 1.1rem;
+        font-weight: 500;
+    }
+
+    #main > .layout-content > .body > .profile-container > .introduce > .accent {
+        font-size: 1.7rem;
+        font-weight: 700;
+    }
+}
+
+/* 화면의 가로 크기가 22rem(352px) 이하일때만 적용할 선택자 */
+@media screen and (max-width: 22rem) {
+    #main > .layout-content {
+        padding: 5rem 1.5rem;
+    }
+
+    #main > .layout-content > .body > .profile-container > .character > .character-category {
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    #main > .layout-content > .body > .skill-container > .container > .box > .category {
+        gap: 0.75rem;
+    }
+
+    #main > .layout-content > .body > .other-container > .other-content > .contact > .content-container {
+        padding: 0.9rem;
+    }
+
+    #main > .layout-content > .body > .other-container > .other-content > .contact > .content-container > .content > .main {
+        width: 4rem;
+        margin-right: 1rem;
+        font-size: 0.9rem;
+        font-weight: 700;
+    }
+
+    #main > .layout-content > .body > .other-container > .other-content > .contact > .content-container > .content > .sub {
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+}
