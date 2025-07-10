@@ -109,6 +109,9 @@ const $experienceDialog = document.getElementById('experienceDialog');
 const showExperienceDialog = (item) => {
     $experienceDialog.classList.add('visible');
 
+    // Dialog 표출 시 스크롤 최상단으로
+    $experienceDialog.querySelector(`:scope > .content-container`).scrollTop = 0;
+
     $experienceDialog.querySelectorAll(':scope > .content-container > .content').forEach(($item) => {
         if ($item.classList.contains(item.dataset['value'])) {
             $item.classList.add('visible');
@@ -144,6 +147,8 @@ const $projectDialog = document.getElementById('projectDialog');
 
 const showProjectDialog = (item) => {
     $projectDialog.classList.add('visible');
+    // Dialog 표출 시 스크롤 최상단으로
+    $projectDialog.querySelector(`:scope > .content-container`).scrollTop = 0;
 
     $projectDialog.querySelectorAll(':scope > .content-container > .content').forEach(($item) => {
         if ($item.classList.contains(item.dataset['value'])) {
