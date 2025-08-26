@@ -59,15 +59,7 @@
     justify-content: flex-start;
 }
 
-#projectDialog > .content-container > .content.vr.visible,
-#projectDialog > .content-container > .content.trip.visible,
-#projectDialog > .content-container > .content.gabolka.visible,
-#projectDialog > .content-container > .content.maze.visible,
-#projectDialog > .content-container > .content.sound.visible,
-#projectDialog > .content-container > .content.watch.visible,
-#projectDialog > .content-container > .content.taza.visible,
-#projectDialog > .content-container > .content.bus.visible,
-#projectDialog > .content-container > .content.ems.visible {
+#projectDialog > .content-container > .content.visible {
     display: flex;
 }
 
@@ -112,6 +104,7 @@
     color: #606060;
     font: inherit;
     font-size: 0.9rem;
+    line-height: 1.2;
 
     align-items: stretch;
     display: flex;
@@ -121,6 +114,7 @@
 }
 
 #projectDialog > .content-container > .content > .spec > .item > .image {
+    padding: 0.5rem 0;
     width: 100%;
     object-fit: cover;
     align-self: center;
