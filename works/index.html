@@ -1,0 +1,4034 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>IM DONGHO — Portfolio</title>
+
+  <style>
+
+    /* =====================================================
+       RESET
+    ===================================================== */
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family:
+        Arial,
+        "Noto Sans KR",
+        sans-serif;
+
+      color: var(--ink);
+      background: var(--bg);
+      font-size: 16px;
+    }
+
+    body.modal-open {
+      overflow: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      font: inherit;
+    }
+
+
+    /* =====================================================
+       COLOR SYSTEM
+    ===================================================== */
+
+    :root {
+      --bg: #f3f4f6;
+      --paper: #ffffff;
+      --paper-soft: #f7f8fa;
+
+      --ink: #20242c;
+      --muted: #727783;
+
+      --line: #e1e4e8;
+
+      --accent: #3568c9;
+      --accent-soft: #eef3ff;
+
+      --warm: #f05a3c;
+      --warm-soft: #fff0ec;
+
+      --blue-soft: #eaf1ff;
+    }
+
+
+    /* =====================================================
+       COVER
+    ===================================================== */
+
+    .cover {
+      position: sticky;
+      top: 0;
+
+      width: 100%;
+      height: 100vh;
+      min-height: 700px;
+
+      padding: 55px;
+
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+
+      background: var(--accent);
+
+      z-index: 1;
+    }
+
+    .cover-label {
+      margin-bottom: 25px;
+
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      font-weight: 600;
+
+      color: #ffffff;
+    }
+
+    .cover-title {
+      font-size: clamp(80px, 11vw, 165px);
+      line-height: 0.84;
+
+      font-weight: 900;
+      letter-spacing: normal;
+
+      color: rgba(255, 255, 255, 0.25);
+    }
+
+    .cover-description {
+      max-width: 640px;
+      margin-top: 40px;
+
+      font-size: 17px;
+      line-height: 1.85;
+
+      color: #ffffff;
+    }
+
+    .cover-description strong {
+      color: #ffffff;
+    }
+
+    .scroll-indicator {
+      position: absolute;
+      left: 55px;
+      bottom: 35px;
+
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      font-weight: 600;
+
+      color: #ffffff;
+
+      animation: scrollMove 2s infinite;
+    }
+
+    @keyframes scrollMove {
+      0% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(6px);
+      }
+
+      100% {
+        transform: translateY(0);
+      }
+    }
+
+
+    /* =====================================================
+       PORTFOLIO LAYOUT
+    ===================================================== */
+
+    .portfolio-layout {
+      position: relative;
+
+      display: grid;
+      grid-template-columns: 25% 75%;
+
+      align-items: start;
+
+      background: var(--bg);
+      z-index: 2;
+    }
+
+
+    /* =====================================================
+       ABOUT ME
+    ===================================================== */
+
+    .about-intro {
+      grid-column: 1 / -1;
+
+      position: relative;
+
+      width: 100%;
+      min-height: 75vh;
+
+      padding: 90px 7%;
+
+      background: var(--paper);
+
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .about-intro-number {
+      margin-bottom: 12px;
+
+      font-size: 11px;
+      font-weight: 600;
+
+      color: #9aa0aa;
+    }
+
+    .about-intro-title {
+      margin-bottom: 42px;
+
+      font-size: clamp(58px, 7vw, 108px);
+      line-height: 0.88;
+
+      font-weight: 900;
+      letter-spacing: -0.04em;
+
+      color: var(--accent);
+    }
+
+    .about-intro-grid {
+      display: grid;
+
+      grid-template-columns:
+        220px
+        minmax(300px, 1fr);
+
+      gap: 55px;
+
+      max-width: 1080px;
+    }
+
+    .about-intro-image {
+      width: 220px;
+      height: 220px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #dfe5ef,
+          #cfd7e4
+        );
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      color: #87909c;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .about-intro-text {
+      max-width: 760px;
+    }
+
+    .about-intro-text h3 {
+      margin-bottom: 20px;
+
+      font-size: 30px;
+      line-height: 1.35;
+      letter-spacing: -0.03em;
+
+      color: var(--ink);
+    }
+
+    .about-intro-text p {
+      font-size: 15px;
+      line-height: 1.9;
+
+      color: #686f7a;
+    }
+
+    .about-intro-text p + p {
+      margin-top: 13px;
+    }
+
+    .about-highlight {
+      margin-top: 22px;
+
+      padding-left: 16px;
+
+      border-left: 3px solid var(--accent);
+
+      font-size: 14px;
+      line-height: 1.8;
+
+      color: #333a45;
+    }
+
+    .profile-info {
+      margin-top: 30px;
+
+      border-top: 1px solid var(--line);
+    }
+
+    .profile-info-row {
+      display: grid;
+
+      grid-template-columns: 110px 1fr;
+
+      gap: 20px;
+
+      padding: 12px 0;
+
+      border-bottom: 1px solid var(--line);
+    }
+
+    .profile-info-label {
+      font-size: 10px;
+      font-weight: 600;
+
+      color: #9aa0aa;
+    }
+
+    .profile-info-value {
+      font-size: 13px;
+
+      color: #333a45;
+    }
+
+
+    /* =====================================================
+       SIDEBAR
+    ===================================================== */
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+
+      height: 100vh;
+
+      min-width: 0;
+
+      padding: 55px 25px;
+
+      background:
+        rgba(248, 249, 251, 0.98);
+
+      border-right: 1px solid var(--line);
+
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+
+      z-index: 100;
+    }
+
+
+    /* =====================================================
+       NAVIGATION
+    ===================================================== */
+
+    .nav {
+      display: flex;
+      flex-direction: column;
+
+      gap: 30px;
+
+      min-width: 0;
+    }
+
+    .nav a {
+      display: block;
+
+      font-size: 2.4rem;
+      line-height: 0.95;
+
+      font-weight: 900;
+
+      letter-spacing: 0.02em;
+
+      white-space: nowrap;
+
+      color: #a2a7b0;
+
+      transition:
+        color 0.25s ease,
+        transform 0.25s ease;
+    }
+
+    .nav a:hover {
+      color: var(--ink);
+
+      transform:
+        translateX(5px);
+    }
+
+    .nav a.active {
+      color: var(--accent);
+    }
+
+
+    /* =====================================================
+       SIDEBAR BOTTOM
+    ===================================================== */
+
+    .sidebar-bottom {
+      display: flex;
+      flex-direction: column;
+
+      gap: 8px;
+
+      font-size: 11px;
+      color: #747b86;
+    }
+
+    .sidebar-bottom a:hover {
+      color: var(--accent);
+    }
+
+    .copyright {
+      margin-top: 15px;
+
+      font-size: 9px;
+      color: #a8adb6;
+    }
+
+
+    /* =====================================================
+       CONTENT
+    ===================================================== */
+
+    .content {
+      width: 100%;
+      background: var(--paper);
+    }
+
+
+    /* =====================================================
+       SECTION COMMON
+    ===================================================== */
+
+    .section {
+      position: relative;
+
+      width: 100%;
+      min-height: 100vh;
+
+      padding: 80px 55px;
+
+      background: var(--paper);
+
+      border-top: 1px solid var(--line);
+    }
+
+    .section-number {
+      margin-bottom: 10px;
+
+      font-size: 10px;
+      font-weight: 600;
+
+      color: #9aa0aa;
+    }
+
+
+    /* =====================================================
+       TITLE BOX
+    ===================================================== */
+
+    .section-title {
+      margin-bottom: 42px;
+
+      display: flex;
+      align-items: center;
+
+      gap: 18px;
+
+      font-size: 1.25rem;
+      line-height: 1;
+
+      font-weight: 900;
+
+      letter-spacing: 0.08em;
+
+      color: var(--accent);
+    }
+
+    .title {
+      display: inline-block;
+
+      color: var(--accent);
+
+      font-weight: 900;
+    }
+
+    .titleLine {
+      flex: 1;
+
+      display: flex;
+      align-items: center;
+    }
+
+    .titleLine::before {
+      content: "";
+
+      display: block;
+
+      width: 100%;
+      height: 1px;
+
+      background: var(--accent);
+    }
+
+
+    /* =====================================================
+       STRENGTHS
+    ===================================================== */
+
+    #strengths {
+      background:
+        linear-gradient(
+          135deg,
+          #eef3ff 0%,
+          #f5f7fc 100%
+        );
+    }
+
+    .strength-intro {
+      max-width: 760px;
+
+      margin-bottom: 48px;
+
+      font-size: 16px;
+      line-height: 1.9;
+
+      color: #68707c;
+    }
+
+    .strength-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(2, 1fr);
+
+      border-top: 1px solid #dce2ec;
+      border-left: 1px solid #dce2ec;
+    }
+
+    .strength-card {
+      min-height: 235px;
+
+      padding: 30px;
+
+      background:
+        rgba(255, 255, 255, 0.68);
+
+      border-right: 1px solid #dce2ec;
+      border-bottom: 1px solid #dce2ec;
+
+      transition:
+        background 0.25s ease,
+        transform 0.25s ease,
+        box-shadow 0.25s ease;
+    }
+
+    .strength-card:hover {
+      background: #ffffff;
+
+      transform: translateY(-3px);
+
+      box-shadow:
+        0 12px 30px rgba(49, 82, 140, 0.08);
+    }
+
+    .strength-number {
+      font-size: 10px;
+      font-weight: 600;
+
+      color: #9aa0aa;
+    }
+
+    .strength-card h3 {
+      margin-top: 22px;
+
+      font-size: 24px;
+      letter-spacing: -0.04em;
+
+      color: var(--ink);
+    }
+
+    .strength-card p {
+      margin-top: 13px;
+
+      font-size: 14px;
+      line-height: 1.8;
+
+      color: #68707c;
+    }
+
+    .strength-keyword {
+      display: inline-block;
+
+      margin-top: 18px;
+      padding: 5px 9px;
+
+      border: 1px solid #ccd7ed;
+
+      font-size: 9px;
+      font-weight: 600;
+
+      color: #5574ae;
+
+      background: #f8faff;
+    }
+
+
+    /* =====================================================
+       EDUCATION
+    ===================================================== */
+
+    .education-item {
+      display: grid;
+
+      grid-template-columns:
+        150px
+        1fr;
+
+      gap: 30px;
+
+      padding: 27px 0;
+
+      border-top: 1px solid var(--line);
+    }
+
+    .education-item:last-child {
+      border-bottom: 1px solid var(--line);
+    }
+
+    .education-date {
+      font-size: 11px;
+
+      color: #9aa0aa;
+    }
+
+    .education-name {
+      font-size: 20px;
+      font-weight: 600;
+
+      color: var(--ink);
+    }
+
+    .education-detail {
+      margin-top: 5px;
+
+      font-size: 12px;
+      line-height: 1.7;
+
+      color: #747b86;
+    }
+
+
+    /* =====================================================
+       SKILLS
+    ===================================================== */
+
+    .skill-row {
+      display: grid;
+
+      grid-template-columns:
+        150px
+        1fr;
+
+      gap: 35px;
+
+      padding: 25px 0;
+
+      border-top: 1px solid var(--line);
+    }
+
+    .skill-row:last-child {
+      border-bottom: 1px solid var(--line);
+    }
+
+    .skill-category {
+      font-size: 11px;
+      font-weight: 600;
+
+      color: #8e96a2;
+    }
+
+    .skill-list {
+      display: flex;
+      flex-wrap: wrap;
+
+      gap: 8px;
+    }
+
+    .skill {
+      padding: 8px 11px;
+
+      border: 1px solid #dfe3e9;
+
+      font-size: 11px;
+
+      color: #4f5763;
+
+      background: #f8f9fb;
+    }
+
+
+    /* =====================================================
+       PROJECTS
+    ===================================================== */
+
+    .project-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+      gap: 18px;
+
+      margin-top: 20px;
+    }
+
+    .project-card {
+      position: relative;
+      overflow: hidden;
+
+      min-height: 355px;
+
+      padding: 25px;
+
+      background: #f8f9fb;
+
+      border: 1px solid var(--line);
+
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+
+      cursor: pointer;
+
+      transition:
+        transform 0.25s ease,
+        background 0.25s ease,
+        border-color 0.25s ease,
+        box-shadow 0.25s ease;
+    }
+
+    .project-card:hover {
+      transform: translateY(-5px);
+
+      background: #ffffff;
+
+      border-color: #cbd6eb;
+
+      box-shadow:
+        0 14px 35px rgba(40, 55, 80, 0.08);
+    }
+
+    .project-number {
+      font-size: 10px;
+      font-weight: 600;
+
+      color: #9aa0aa;
+    }
+
+    .project-title {
+      margin-top: 28px;
+
+      font-size: 25px;
+      font-weight: 600;
+
+      letter-spacing: -0.04em;
+
+      color: var(--ink);
+    }
+
+    .project-description {
+      margin-top: 12px;
+
+      font-size: 13px;
+      line-height: 1.8;
+
+      color: #68707c;
+    }
+
+    .project-stack {
+      margin-top: 16px;
+
+      font-size: 10px;
+      line-height: 1.7;
+
+      color: #9097a2;
+    }
+
+    .project-click {
+      margin-top: 12px;
+
+      font-size: 10px;
+      font-weight: 600;
+
+      letter-spacing: 0.04em;
+
+      color: var(--accent);
+    }
+
+    .project-bottom {
+      display: flex;
+
+      align-items: center;
+      justify-content: space-between;
+
+      gap: 15px;
+
+      margin-top: 25px;
+    }
+
+    .project-tag {
+      display: inline-block;
+
+      padding: 6px 9px;
+
+      border: 1px solid #d7dde7;
+
+      font-size: 9px;
+      font-weight: 600;
+
+      color: #657083;
+
+      background: #ffffff;
+    }
+
+    .project-year {
+      font-size: 10px;
+      color: #9aa0aa;
+
+      white-space: nowrap;
+    }
+
+
+    /* =====================================================
+       EXPERIENCE
+    ===================================================== */
+
+    .experience-intro {
+      max-width: 760px;
+
+      margin-bottom: 48px;
+
+      font-size: 16px;
+      line-height: 1.9;
+
+      color: #68707c;
+    }
+
+    .experience-highlight {
+      padding: 35px 0;
+
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .experience-highlight-top {
+      display: flex;
+
+      justify-content: space-between;
+      align-items: end;
+
+      gap: 30px;
+    }
+
+    .experience-highlight-title {
+      font-size: 32px;
+      line-height: 1.2;
+
+      letter-spacing: -0.05em;
+
+      color: var(--ink);
+    }
+
+    .experience-highlight-company {
+      font-size: 12px;
+      color: #9aa0aa;
+
+      white-space: nowrap;
+    }
+
+    .experience-highlight-description {
+      max-width: 760px;
+
+      margin-top: 18px;
+
+      font-size: 14px;
+      line-height: 1.9;
+
+      color: #68707c;
+    }
+
+    .experience-info {
+      display: grid;
+
+      grid-template-columns:
+        repeat(3, 1fr);
+
+      margin-top: 35px;
+
+      border-top: 1px solid var(--line);
+    }
+
+    .experience-info-item {
+      padding: 22px;
+
+      border-right: 1px solid #e1e4e8;
+    }
+
+    .experience-info-item:last-child {
+      border-right: none;
+    }
+
+    .experience-info-number {
+      font-size: 23px;
+      font-weight: 600;
+
+      color: var(--ink);
+    }
+
+    .experience-info-label {
+      margin-top: 6px;
+
+      font-size: 9px;
+      font-weight: 600;
+
+      color: #9aa0aa;
+    }
+
+    .experience-detail {
+      margin-top: 42px;
+
+      border-top: 1px solid var(--line);
+    }
+
+    .experience-detail-item {
+      display: grid;
+
+      grid-template-columns:
+        150px
+        1fr;
+
+      gap: 30px;
+
+      padding: 26px 0;
+
+      border-bottom: 1px solid var(--line);
+    }
+
+    .experience-detail-date {
+      font-size: 11px;
+
+      color: #9aa0aa;
+    }
+
+    .experience-detail-title {
+      font-size: 20px;
+      font-weight: 600;
+
+      letter-spacing: -0.04em;
+
+      color: var(--ink);
+    }
+
+    .experience-detail-role {
+      margin-top: 4px;
+
+      font-size: 11px;
+      color: #858d99;
+    }
+
+    .experience-detail-description {
+      margin-top: 10px;
+
+      font-size: 13px;
+      line-height: 1.8;
+
+      color: #68707c;
+    }
+
+    .experience-detail-tech {
+      margin-top: 10px;
+
+      font-size: 10px;
+      color: #9aa0aa;
+    }
+
+
+    /* =====================================================
+       EXPERIENCE — ACTIVITIES
+    ===================================================== */
+
+    .experience-activity {
+      margin-top: 45px;
+
+      border-top: 1px solid var(--line);
+    }
+
+    .experience-activity-item {
+      display: grid;
+
+      grid-template-columns:
+        150px
+        1fr;
+
+      gap: 30px;
+
+      padding: 25px 0;
+
+      border-bottom: 1px solid var(--line);
+    }
+
+    .experience-activity-date {
+      font-size: 11px;
+
+      color: #9aa0aa;
+    }
+
+    .experience-activity-title {
+      font-size: 18px;
+      font-weight: 600;
+
+      letter-spacing: -0.03em;
+
+      color: var(--ink);
+    }
+
+    .experience-activity-description {
+      margin-top: 7px;
+
+      font-size: 13px;
+      line-height: 1.8;
+
+      color: #68707c;
+    }
+
+    .experience-activity-tech {
+      margin-top: 9px;
+
+      font-size: 10px;
+
+      color: #9aa0aa;
+    }
+
+    .experience-activity-award {
+      margin-left: 8px;
+
+      font-size: 9px;
+      font-weight: 600;
+
+      letter-spacing: 0.04em;
+
+      color: var(--accent);
+    }
+
+
+    /* =====================================================
+       CONTACT
+    ===================================================== */
+
+    #contact {
+      background:
+        linear-gradient(
+          135deg,
+          #eef2f8 0%,
+          #f8f9fb 55%,
+          #f2f3f8 100%
+        );
+    }
+
+    .contact {
+      min-height: 80vh;
+
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .contact-title {
+      font-size: clamp(60px, 7.5vw, 108px);
+
+      line-height: 0.85;
+
+      font-weight: 900;
+      letter-spacing: 0.02em;
+
+      color: rgba(53, 104, 201, 0.25);
+    }
+
+    .contact-description {
+      max-width: 540px;
+
+      margin-top: 32px;
+
+      font-size: 14px;
+      line-height: 1.9;
+
+      color: #68707c;
+    }
+
+    .contact-links {
+      display: flex;
+
+      gap: 25px;
+
+      margin-top: 42px;
+    }
+
+    .contact-links a {
+      padding-bottom: 5px;
+
+      border-bottom: 1px solid var(--accent);
+
+      font-size: 11px;
+      font-weight: 600;
+
+      color: var(--accent);
+
+      transition:
+        color 0.2s ease,
+        border-color 0.2s ease;
+    }
+
+    .contact-links a:hover {
+      color: var(--warm);
+      border-color: var(--warm);
+    }
+
+
+    /* =====================================================
+       PROJECT MODAL
+    ===================================================== */
+
+    .project-modal {
+      position: fixed;
+
+      inset: 0;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      padding: 30px;
+
+      background:
+        rgba(15, 23, 42, 0.42);
+
+      backdrop-filter: blur(5px);
+
+      opacity: 0;
+      visibility: hidden;
+
+      transition:
+        opacity 0.25s ease,
+        visibility 0.25s ease;
+
+      z-index: 1000;
+    }
+
+    .project-modal.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .project-modal-content {
+      position: relative;
+
+      width: min(900px, 100%);
+      max-height: 90vh;
+
+      overflow-y: auto;
+
+      padding: 34px;
+
+      background: #ffffff;
+
+      border: 1px solid #e1e5eb;
+
+      box-shadow:
+        0 30px 80px rgba(15, 23, 42, 0.18);
+
+      transform: translateY(20px);
+
+      transition:
+        transform 0.25s ease;
+    }
+
+    .project-modal.active .project-modal-content {
+      transform: translateY(0);
+    }
+
+    .modal-close {
+      position: absolute;
+
+      top: 18px;
+      right: 20px;
+
+      width: 34px;
+      height: 34px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border: none;
+
+      background: #f4f6f8;
+
+      color: #67707d;
+
+      border-radius: 50%;
+
+      cursor: pointer;
+
+      font-size: 18px;
+
+      transition:
+        background 0.2s ease,
+        color 0.2s ease;
+    }
+
+    .modal-close:hover {
+      background: #e9edf2;
+      color: var(--ink);
+    }
+
+    .modal-number {
+      font-size: 10px;
+      font-weight: 700;
+
+      color: #9aa0aa;
+
+      letter-spacing: 0.08em;
+    }
+
+    .modal-title {
+      margin-top: 10px;
+
+      padding-right: 45px;
+
+      font-size: 34px;
+      font-weight: 700;
+
+      letter-spacing: -0.05em;
+
+      color: var(--ink);
+    }
+
+    .modal-period {
+      margin-top: 8px;
+
+      font-size: 11px;
+
+      color: #8e96a2;
+    }
+
+
+    /* =====================================================
+       IMAGE SLIDER
+    ===================================================== */
+
+    .modal-image-slider {
+      position: relative;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      width: 100%;
+
+      margin-top: 28px;
+    }
+
+    .modal-image {
+      width: 100%;
+      height: 480px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      overflow: hidden;
+
+      background:
+        linear-gradient(
+          135deg,
+          #edf3ff 0%,
+          #f3efff 100%
+        );
+
+      border: 1px solid #dfe5ee;
+    }
+
+    .modal-image img {
+      display: block;
+
+      width: 100%;
+      height: 100%;
+
+      object-fit: contain;
+    }
+
+    .slider-button {
+      position: absolute;
+
+      top: 50%;
+
+      width: 42px;
+      height: 42px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      transform: translateY(-50%);
+
+      border: none;
+      border-radius: 50%;
+
+      background:
+        rgba(255, 255, 255, 0.92);
+
+      color: #20242c;
+
+      font-size: 28px;
+      line-height: 1;
+
+      cursor: pointer;
+
+      box-shadow:
+        0 4px 15px rgba(0, 0, 0, 0.12);
+
+      z-index: 2;
+
+      transition:
+        background 0.2s ease,
+        transform 0.2s ease;
+    }
+
+    .slider-button:hover {
+      background: #ffffff;
+
+      transform:
+        translateY(-50%)
+        scale(1.04);
+    }
+
+    .slider-button.prev {
+      left: 15px;
+    }
+
+    .slider-button.next {
+      right: 15px;
+    }
+
+    .slider-counter {
+      margin-top: 12px;
+
+      text-align: center;
+
+      font-size: 11px;
+
+      color: #8b929d;
+    }
+
+
+    /* =====================================================
+       MODAL TEXT
+    ===================================================== */
+
+    .modal-description {
+      margin-top: 25px;
+
+      font-size: 14px;
+      line-height: 1.9;
+
+      color: #616a76;
+    }
+
+    .modal-tech {
+      margin-top: 22px;
+
+      padding-top: 20px;
+
+      border-top: 1px solid var(--line);
+
+      font-size: 11px;
+      line-height: 1.8;
+
+      color: #7e8793;
+    }
+
+    .modal-tech strong {
+      margin-right: 8px;
+
+      color: var(--ink);
+    }
+
+
+    /* =====================================================
+       BACK TO TOP
+    ===================================================== */
+
+    .back-to-top {
+      position: fixed;
+
+      left: 50%;
+      bottom: 30px;
+
+      width: 54px;
+      height: 54px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      transform:
+        translateX(-50%)
+        translateY(12px);
+
+      border: 1px solid rgba(53, 104, 201, 0.35);
+
+      border-radius: 50%;
+
+      background:
+        rgba(255, 255, 255, 0.9);
+
+      color: var(--accent);
+
+      font-size: 20px;
+      font-weight: 900;
+
+      cursor: pointer;
+
+      opacity: 0;
+      visibility: hidden;
+
+      box-shadow:
+        0 8px 25px rgba(32, 45, 70, 0.08);
+
+      backdrop-filter: blur(6px);
+
+      transition:
+        opacity 0.25s ease,
+        visibility 0.25s ease,
+        transform 0.25s ease,
+        background 0.2s ease,
+        color 0.2s ease;
+      
+      z-index: 900;
+    }
+
+    .back-to-top.show {
+      opacity: 1;
+      visibility: visible;
+
+      transform:
+        translateX(-50%)
+        translateY(0);
+    }
+
+    .back-to-top:hover {
+      background: var(--accent);
+
+      color: #ffffff;
+
+      transform:
+        translateX(-50%)
+        translateY(-4px);
+    }
+
+
+    /* =====================================================
+       MOBILE
+    ===================================================== */
+
+    @media (max-width: 900px) {
+
+      .portfolio-layout {
+        display: block;
+      }
+
+      .about-intro {
+        min-height: auto;
+
+        padding:
+          90px 25px;
+      }
+
+      .about-intro-grid {
+        grid-template-columns: 1fr;
+
+        gap: 35px;
+      }
+
+      .about-intro-image {
+        width: 220px;
+        height: 220px;
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+
+        width: 100%;
+        height: auto;
+        min-height: 60px;
+
+        padding: 16px 20px;
+
+        flex-direction: row;
+        align-items: center;
+
+        background:
+          rgba(248, 249, 251, 0.97);
+
+        backdrop-filter: blur(8px);
+
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .nav {
+        flex-direction: row;
+
+        gap: 20px;
+
+        overflow-x: auto;
+
+        width: 100%;
+      }
+
+      .nav a {
+        white-space: nowrap;
+
+        font-size: 10px;
+
+        line-height: 1;
+
+        letter-spacing: 0.02em;
+      }
+
+      .sidebar-bottom {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .section {
+        min-height: auto;
+
+        padding:
+          70px 25px;
+      }
+
+      .section-title {
+        font-size: 1.25rem;
+        gap: 14px;
+
+        font-weight: 900;
+      }
+
+      .strength-grid,
+      .project-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .experience-highlight-top {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      .experience-info {
+        grid-template-columns: 1fr;
+      }
+
+      .experience-info-item {
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .experience-detail-item,
+      .experience-activity-item {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .skill-row {
+        grid-template-columns: 1fr;
+
+        gap: 15px;
+      }
+
+      .education-item {
+        grid-template-columns: 1fr;
+
+        gap: 8px;
+      }
+
+      .project-card {
+        min-height: 320px;
+      }
+
+      .project-modal {
+        padding: 15px;
+      }
+
+      .project-modal-content {
+        padding: 25px;
+
+        max-height: 92vh;
+      }
+
+      .modal-title {
+        font-size: 28px;
+      }
+
+      .modal-image {
+        height: 300px;
+      }
+
+      .slider-button {
+        width: 38px;
+        height: 38px;
+
+        font-size: 24px;
+      }
+
+      .slider-button.prev {
+        left: 10px;
+      }
+
+      .slider-button.next {
+        right: 10px;
+      }
+
+      .back-to-top {
+        bottom: 20px;
+
+        width: 46px;
+        height: 46px;
+      }
+
+    }
+
+  </style>
+</head>
+
+
+<body>
+
+
+  <!-- =====================================================
+       COVER
+  ===================================================== -->
+
+  <section
+    class="cover"
+    id="top"
+  >
+
+    <div class="cover-label">
+      DEVELOPER / NETWORK & SECURITY
+    </div>
+
+
+    <h1 class="cover-title">
+      IM<br>
+      DONGHO
+    </h1>
+
+
+    <p class="cover-description">
+      개발 경험을 바탕으로
+      <strong>문제를 해결하고 시스템을 이해하는 엔지니어</strong>로
+      성장하고 있습니다.
+    </p>
+
+
+    <div class="scroll-indicator">
+      SCROLL TO EXPLORE ↓
+    </div>
+
+  </section>
+
+
+
+  <!-- =====================================================
+       PORTFOLIO LAYOUT
+  ===================================================== -->
+
+  <div class="portfolio-layout">
+
+
+    <!-- ===================================================
+         ABOUT ME
+    ==================================================== -->
+
+    <section
+      class="about-intro"
+      id="about"
+    >
+
+      <div class="about-intro-number">
+        01 — ABOUT ME
+      </div>
+
+
+      <h2 class="about-intro-title">
+        About me
+      </h2>
+
+
+      <div class="about-intro-grid">
+
+
+        <div class="about-intro-image">
+          PROFILE IMAGE
+        </div>
+
+
+        <div class="about-intro-text">
+
+          <h3>
+            개발에서 시작해<br>
+            시스템까지 바라봅니다.
+          </h3>
+
+
+          <p>
+            안녕하세요. 임동호입니다.
+            저는 새로운 문제를 마주했을 때
+            주어진 방법만 따라가기보다 왜 문제가 발생했는지
+            직접 확인하고 해결하는 과정을 중요하게 생각합니다.
+          </p>
+
+
+          <p>
+            3년 2개월 동안 자동차 내비게이션 소프트웨어를
+            개발하며 C++와 Java를 사용했고,
+            실제 제품의 UI와 기능을 개발하고 유지보수했습니다.
+          </p>
+
+
+          <p>
+            이후 웹 개발 교육과 다양한 프로젝트를 경험하면서
+            서버와 데이터베이스까지 개발 범위를 넓혔고,
+            현재는 네트워크와 보안을 공부하며
+            애플리케이션 아래의 시스템까지 이해하려고 합니다.
+          </p>
+
+
+          <div class="about-highlight">
+            제가 잘하고 싶은 것은 단순히 코드를 작성하는 것이 아니라,
+            문제의 원인을 찾아 구조적으로 해결하고
+            그 경험을 다음 문제에 활용하는 것입니다.
+          </div>
+
+
+          <div class="profile-info">
+
+            <div class="profile-info-row">
+
+              <div class="profile-info-label">
+                NAME
+              </div>
+
+              <div class="profile-info-value">
+                임동호 / IM DONGHO
+              </div>
+
+            </div>
+
+
+            <div class="profile-info-row">
+
+              <div class="profile-info-label">
+                EXPERIENCE
+              </div>
+
+              <div class="profile-info-value">
+                Software Development · 3 Years 2 Months
+              </div>
+
+            </div>
+
+
+            <div class="profile-info-row">
+
+              <div class="profile-info-label">
+                CURRENT
+              </div>
+
+              <div class="profile-info-value">
+                K-뉴딜 SKT ALEPH
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- ===================================================
+         SIDEBAR
+    ==================================================== -->
+
+    <aside class="sidebar">
+
+      <nav class="nav">
+
+        <a
+          href="#strengths"
+          data-section="strengths"
+          class="active"
+        >
+          STRENGTHS
+        </a>
+
+
+        <a
+          href="#education"
+          data-section="education"
+        >
+          EDUCATION
+        </a>
+
+
+        <a
+          href="#skills"
+          data-section="skills"
+        >
+          SKILLS
+        </a>
+
+
+        <a
+          href="#projects"
+          data-section="projects"
+        >
+          PROJECTS
+        </a>
+
+
+        <a
+          href="#experience"
+          data-section="experience"
+        >
+          EXPERIENCE
+        </a>
+
+      </nav>
+
+
+      <div class="sidebar-bottom">
+
+        <a
+          href="https://github.com/imdongho"
+          target="_blank"
+          rel="noopener"
+        >
+          GitHub ↗
+        </a>
+
+
+        <div class="copyright">
+          © 2026 IM DONGHO
+        </div>
+
+      </div>
+
+    </aside>
+
+
+
+    <!-- ===================================================
+         RIGHT CONTENT
+    ==================================================== -->
+
+    <main class="content">
+
+
+      <!-- =================================================
+           STRENGTHS
+      ================================================== -->
+
+      <section
+        class="section"
+        id="strengths"
+      >
+
+        <div class="section-number">
+          02
+        </div>
+
+
+        <h2 class="section-title">
+          <span class="title">
+            STRENGTHS
+          </span>
+
+          <span class="titleLine"></span>
+        </h2>
+
+
+        <p class="strength-intro">
+          제가 가진 강점은 특정 기술 하나보다
+          문제를 바라보는 방식과 실제 경험에서 만들어졌습니다.
+          개발 경험을 바탕으로 문제를 분석하고,
+          새로운 영역을 빠르게 배우며 직접 검증하는 것을 중요하게 생각합니다.
+        </p>
+
+
+        <div class="strength-grid">
+
+
+          <article class="strength-card">
+
+            <div class="strength-number">
+              01
+            </div>
+
+
+            <h3>
+              문제를 끝까지 추적합니다
+            </h3>
+
+
+            <p>
+              오류가 발생했을 때 결과만 수정하는 것이 아니라
+              현상을 확인하고 원인을 좁혀가며
+              해결 방법을 찾는 과정을 중요하게 생각합니다.
+              실제 제품 개발과 디버깅 경험을 통해 만들어진 강점입니다.
+            </p>
+
+
+            <span class="strength-keyword">
+              PROBLEM SOLVING
+            </span>
+
+          </article>
+
+
+          <article class="strength-card">
+
+            <div class="strength-number">
+              02
+            </div>
+
+
+            <h3>
+              실제 제품을 경험했습니다
+            </h3>
+
+
+            <p>
+              약 3년 2개월 동안 자동차 내비게이션 개발에 참여하며
+              기능 구현뿐 아니라 유지보수와 오류 대응까지 경험했습니다.
+              개발 결과가 실제 제품에서 어떻게 동작하는지
+              생각하며 작업하는 습관을 갖고 있습니다.
+            </p>
+
+
+            <span class="strength-keyword">
+              REAL PRODUCT
+            </span>
+
+          </article>
+
+
+          <article class="strength-card">
+
+            <div class="strength-number">
+              03
+            </div>
+
+
+            <h3>
+              새로운 영역을 연결합니다
+            </h3>
+
+
+            <p>
+              C++와 Java에서 시작해 웹 개발과 데이터베이스를 경험했고,
+              현재는 네트워크와 보안으로 학습 범위를 넓히고 있습니다.
+              하나의 기술만 보는 것이 아니라
+              시스템 전체의 관계를 이해하려고 합니다.
+            </p>
+
+
+            <span class="strength-keyword">
+              SYSTEM THINKING
+            </span>
+
+          </article>
+
+
+          <article class="strength-card">
+
+            <div class="strength-number">
+              04
+            </div>
+
+
+            <h3>
+              직접 구성하고 검증합니다
+            </h3>
+
+
+            <p>
+              네트워크와 Linux 학습에서도
+              이론으로 끝내기보다 직접 환경을 구성하고
+              Ping, Routing Table, Service 상태 등을 확인합니다.
+              배운 내용을 실제 결과로 확인하는 것을 중요하게 생각합니다.
+            </p>
+
+
+            <span class="strength-keyword">
+              HANDS-ON
+            </span>
+
+          </article>
+
+        </div>
+
+      </section>
+
+
+
+      <!-- =================================================
+           EDUCATION
+      ================================================== -->
+
+      <section
+        class="section"
+        id="education"
+      >
+
+        <div class="section-number">
+          03
+        </div>
+
+
+        <h2 class="section-title">
+          <span class="title">
+            EDUCATION
+          </span>
+
+          <span class="titleLine"></span>
+        </h2>
+
+
+        <div class="education-item">
+
+          <div class="education-date">
+            2015.03 — 2021.02
+          </div>
+
+          <div>
+
+            <div class="education-name">
+              영남이공대학교
+            </div>
+
+            <div class="education-detail">
+              Computer Information · GPA 3.75 / 4.5
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="education-item">
+
+          <div class="education-date">
+            2025.02 — 2025.08
+          </div>
+
+          <div>
+
+            <div class="education-name">
+              SmartWeb 응용 프로그래밍 개발자 양성 과정
+            </div>
+
+            <div class="education-detail">
+              Java · Spring Boot · MySQL · Web Application Development
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="education-item">
+
+          <div class="education-date">
+            2026 —
+          </div>
+
+          <div>
+
+            <div class="education-name">
+              K-뉴딜 SKT ALEPH
+            </div>
+
+            <div class="education-detail">
+              네트워크·보안 및 IT 실무 역량을 중심으로 현업에 필요한 기술을 배우는 실무형 인재 양성 과정.
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+
+      <!-- =================================================
+           SKILLS
+      ================================================== -->
+
+      <section
+        class="section"
+        id="skills"
+      >
+
+        <div class="section-number">
+          04
+        </div>
+
+
+        <h2 class="section-title">
+          <span class="title">
+            SKILLS
+          </span>
+
+          <span class="titleLine"></span>
+        </h2>
+
+
+        <div class="skill-row">
+
+          <div class="skill-category">
+            DEVELOPMENT
+          </div>
+
+
+          <div class="skill-list">
+
+            <div class="skill">Java</div>
+            <div class="skill">C++</div>
+            <div class="skill">JavaScript</div>
+            <div class="skill">HTML</div>
+            <div class="skill">CSS</div>
+            <div class="skill">Spring Boot</div>
+            <div class="skill">Thymeleaf</div>
+
+          </div>
+
+        </div>
+
+
+        <div class="skill-row">
+
+          <div class="skill-category">
+            DATABASE
+          </div>
+
+
+          <div class="skill-list">
+
+            <div class="skill">MariaDB</div>
+            <div class="skill">MySQL</div>
+
+          </div>
+
+        </div>
+
+
+        <div class="skill-row">
+
+          <div class="skill-category">
+            NETWORK
+          </div>
+
+
+          <div class="skill-list">
+
+            <div class="skill">OSI 7 Layer</div>
+            <div class="skill">TCP/IP</div>
+            <div class="skill">Subnetting</div>
+            <div class="skill">VLAN</div>
+            <div class="skill">Routing</div>
+            <div class="skill">RIP</div>
+            <div class="skill">EIGRP</div>
+            <div class="skill">OSPF</div>
+            <div class="skill">HSRP</div>
+            <div class="skill">IPv6</div>
+            <div class="skill">GRE Tunnel</div>
+
+          </div>
+
+        </div>
+
+
+        <div class="skill-row">
+
+          <div class="skill-category">
+            SECURITY / SYSTEM
+          </div>
+
+
+          <div class="skill-list">
+
+            <div class="skill">ACL</div>
+            <div class="skill">IPsec</div>
+            <div class="skill">Linux</div>
+            <div class="skill">Rocky Linux</div>
+            <div class="skill">DNS</div>
+            <div class="skill">FTP / FTPS</div>
+            <div class="skill">vsftpd</div>
+            <div class="skill">Firewall</div>
+
+          </div>
+
+        </div>
+
+
+        <div class="skill-row">
+
+          <div class="skill-category">
+            TOOLS
+          </div>
+
+
+          <div class="skill-list">
+
+            <div class="skill">Git</div>
+            <div class="skill">GitHub</div>
+            <div class="skill">VS Code</div>
+            <div class="skill">Android Studio</div>
+            <div class="skill">Packet Tracer</div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+
+      <!-- =================================================
+           PROJECTS
+      ================================================== -->
+
+      <section
+        class="section"
+        id="projects"
+      >
+
+        <div class="section-number">
+          05
+        </div>
+
+
+        <h2 class="section-title">
+          <span class="title">
+            PROJECTS
+          </span>
+
+          <span class="titleLine"></span>
+        </h2>
+
+
+        <div class="project-grid">
+
+
+          <!-- PROJECT 01 -->
+
+          <article
+            class="project-card"
+            data-project="maze"
+            onclick="openProjectModal('maze')"
+          >
+
+            <div>
+
+              <div class="project-number">
+                01
+              </div>
+
+              <div class="project-title">
+                미로게임
+              </div>
+
+              <div class="project-description">
+                C언어로 구현한 콘솔게임입니다.
+                출구를 찾으면서 등장하는 미니게임을 통과하며 진행하며,
+                담당 미니게임은 비행선 착륙 게임입니다.
+              </div>
+
+              <div class="project-stack">
+                C · Console Game · Mini Game
+              </div>
+
+              <div class="project-click">
+                VIEW PROJECT →
+              </div>
+
+            </div>
+
+
+            <div class="project-bottom">
+
+              <span class="project-tag">
+                C PROJECT
+              </span>
+
+              <span class="project-year">
+                2020
+              </span>
+
+            </div>
+
+          </article>
+
+
+
+          <!-- PROJECT 02 -->
+
+          <article
+            class="project-card"
+            data-project="travel"
+            onclick="openProjectModal('travel')"
+          >
+
+            <div>
+
+              <div class="project-number">
+                02
+              </div>
+
+              <div class="project-title">
+                세계여행지 추천 사이트
+              </div>
+
+              <div class="project-description">
+                JavaScript와 XML 파싱을 활용하여
+                세계 주요 여행지의 날씨 정보를 제공하는
+                개인 여행지 추천 사이트입니다.
+              </div>
+
+              <div class="project-stack">
+                JavaScript · XML · Weather Data
+              </div>
+
+              <div class="project-click">
+                VIEW PROJECT →
+              </div>
+
+            </div>
+
+
+            <div class="project-bottom">
+
+              <span class="project-tag">
+                SOLO PROJECT
+              </span>
+
+              <span class="project-year">
+                2020
+              </span>
+
+            </div>
+
+          </article>
+
+
+
+          <!-- PROJECT 03 -->
+
+          <article
+            class="project-card"
+            data-project="gabolka"
+            onclick="openProjectModal('gabolka')"
+          >
+
+            <div>
+
+              <div class="project-number">
+                03
+              </div>
+
+              <div class="project-title">
+                관광지 추천 사이트
+              </div>
+
+              <div class="project-description">
+                국내 관광지를 추천하고 회원가입 및 로그인,
+                리뷰 게시판과 추천 아이템을 제공하는 웹 사이트입니다.
+                회원가입과 게시판 기능을 담당했습니다.
+              </div>
+
+              <div class="project-stack">
+                PHP · Web · Login · Board
+              </div>
+
+              <div class="project-click">
+                VIEW PROJECT →
+              </div>
+
+            </div>
+
+
+            <div class="project-bottom">
+
+              <span class="project-tag">
+                WEB PROJECT
+              </span>
+
+              <span class="project-year">
+                2020
+              </span>
+
+            </div>
+
+          </article>
+
+
+
+          <!-- PROJECT 04 -->
+
+          <article
+            class="project-card"
+            data-project="puzzle"
+            onclick="openProjectModal('puzzle')"
+          >
+
+            <div>
+
+              <div class="project-number">
+                04
+              </div>
+
+              <div class="project-title">
+                도심 속 퍼즐 찾기
+              </div>
+
+              <div class="project-description">
+                Unity와 Steam VR을 활용한 비대면 VR 교육 팀 프로젝트입니다.
+                도심 속에서 랜덤 생성되는 퍼즐을 찾아 퍼즐틀에 맞추는 게임을 구현했습니다.
+              </div>
+
+              <div class="project-stack">
+                Unity · Steam VR · VR · C#
+              </div>
+
+              <div class="project-click">
+                VIEW PROJECT →
+              </div>
+
+            </div>
+
+
+            <div class="project-bottom">
+
+              <span class="project-tag">
+                VR PROJECT
+              </span>
+
+              <span class="project-year">
+                2020
+              </span>
+
+            </div>
+
+          </article>
+
+
+
+          <!-- PROJECT 05 -->
+
+          <article
+            class="project-card"
+            data-project="hearing"
+            onclick="openProjectModal('hearing')"
+          >
+
+            <div>
+
+              <div class="project-number">
+                05
+              </div>
+
+              <div class="project-title">
+                청각장애 도보 보조 안경
+              </div>
+
+              <div class="project-description">
+                주변의 큰 소리가 발생한 방향을 진동으로 알려주는
+                보조 안경 프로젝트입니다.
+                아두이노와 앱을 활용하고 Bluetooth로 연결하여
+                실시간 사운드 측정 및 진동 세기를 조절했습니다.
+              </div>
+
+              <div class="project-stack">
+                Arduino · App Inventor · Bluetooth · Sensor
+              </div>
+
+              <div class="project-click">
+                VIEW PROJECT →
+              </div>
+
+            </div>
+
+
+            <div class="project-bottom">
+
+              <span class="project-tag">
+                EMBEDDED
+              </span>
+
+              <span class="project-year">
+                2020
+              </span>
+
+            </div>
+
+          </article>
+
+
+
+          <!-- PROJECT 06 -->
+
+          <article
+            class="project-card"
+            data-project="vision"
+            onclick="openProjectModal('vision')"
+          >
+
+            <div>
+
+              <div class="project-number">
+                06
+              </div>
+
+              <div class="project-title">
+                시각장애 도보 보조 안경
+              </div>
+
+              <div class="project-description">
+                시각장애인의 안전한 보행을 돕기 위한 센서 기반 보조 안경입니다.
+                Pixy 카메라를 이용한 색상 인식과
+                Lidar 센서를 활용한 거리 측정을 진행했습니다.
+              </div>
+
+              <div class="project-stack">
+                Arduino · Pixy Camera · Lidar · Sensor
+              </div>
+
+              <div class="project-click">
+                VIEW PROJECT →
+              </div>
+
+            </div>
+
+
+            <div class="project-bottom">
+
+              <span class="project-tag">
+                EMBEDDED
+              </span>
+
+              <span class="project-year">
+                2020
+              </span>
+
+            </div>
+
+          </article>
+
+
+
+          <!-- PROJECT 07 -->
+
+          <article
+            class="project-card"
+            data-project="taza"
+            onclick="openProjectModal('taza')"
+          >
+
+            <div>
+
+              <div class="project-number">
+                07
+              </div>
+
+              <div class="project-title">
+                타자 (TAZA)
+              </div>
+
+              <div class="project-description">
+                Kakao 지도와 길찾기 API를 활용하여
+                출발지와 목적지, 경로를 표시하고
+                PortOne 가상결제와 LocalStorage 기반
+                길찾기 이력 기능을 구현한 웹 프로젝트입니다.
+              </div>
+
+              <div class="project-stack">
+                JavaScript · Kakao Maps API · Directions API · PortOne · LocalStorage
+              </div>
+
+              <div class="project-click">
+                VIEW PROJECT →
+              </div>
+
+            </div>
+
+
+            <div class="project-bottom">
+
+              <span class="project-tag">
+                WEB APPLICATION
+              </span>
+
+              <span class="project-year">
+                2025
+              </span>
+
+            </div>
+
+          </article>
+
+
+
+          <!-- PROJECT 08 -->
+
+          <article
+            class="project-card"
+            data-project="bus"
+            onclick="openProjectModal('bus')"
+          >
+
+            <div>
+
+              <div class="project-number">
+                08
+              </div>
+
+              <div class="project-title">
+                시내 버스 정보
+              </div>
+
+              <div class="project-description">
+                대구 시내버스의 노선과 정류장 정보를
+                검색하고 지도에서 확인할 수 있도록 만든 개인 프로젝트입니다.
+                공공데이터 API와 Kakao Maps API를 활용했습니다.
+              </div>
+
+              <div class="project-stack">
+                Public Data API · Kakao Maps API · LocalStorage
+              </div>
+
+              <div class="project-click">
+                VIEW PROJECT →
+              </div>
+
+            </div>
+
+
+            <div class="project-bottom">
+
+              <span class="project-tag">
+                SOLO PROJECT
+              </span>
+
+              <span class="project-year">
+                2025
+              </span>
+
+            </div>
+
+          </article>
+
+
+
+          <!-- PROJECT 09 -->
+
+          <article
+            class="project-card"
+            data-project="ems"
+            onclick="openProjectModal('ems')"
+          >
+
+            <div>
+
+              <div class="project-number">
+                09
+              </div>
+
+              <div class="project-title">
+                EMS
+              </div>
+
+              <div class="project-description">
+                운동, 식단, InBody 정보를 기록하고 관리하는
+                웹 기반 건강관리 시스템입니다.
+                팀 프로젝트에서 식단 일지 화면 개발을 담당했습니다.
+              </div>
+
+              <div class="project-stack">
+                Java · Spring Boot · MariaDB · Thymeleaf
+              </div>
+
+              <div class="project-click">
+                VIEW PROJECT →
+              </div>
+
+            </div>
+
+
+            <div class="project-bottom">
+
+              <span class="project-tag">
+                TEAM PROJECT
+              </span>
+
+              <span class="project-year">
+                2025
+              </span>
+
+            </div>
+
+          </article>
+
+
+
+          <!-- PROJECT 10 -->
+
+          <article
+            class="project-card"
+            data-project="rebook"
+            onclick="openProjectModal('rebook')"
+          >
+
+            <div>
+
+              <div class="project-number">
+                10
+              </div>
+
+              <div class="project-title">
+                ReBook
+              </div>
+
+              <div class="project-description">
+                사용자 관심 키워드 기반 도서 추천과
+                리뷰, 챗봇 기능을 제공하는 웹 서비스입니다.
+                검색 화면과 리뷰 화면 개발을 담당했습니다.
+              </div>
+
+              <div class="project-stack">
+                Java · Spring Boot · Aladin API · XML · Database
+              </div>
+
+              <div class="project-click">
+                VIEW PROJECT →
+              </div>
+
+            </div>
+
+
+            <div class="project-bottom">
+
+              <span class="project-tag">
+                TEAM PROJECT
+              </span>
+
+              <span class="project-year">
+                2025
+              </span>
+
+            </div>
+
+          </article>
+
+
+
+          <!-- PROJECT 11 -->
+
+          <article
+            class="project-card"
+            data-project="all-e-on"
+            onclick="openProjectModal('all-e-on')"
+          >
+
+            <div>
+
+              <div class="project-number">
+                11
+              </div>
+
+              <div class="project-title">
+                알리온 (All-e-on)
+              </div>
+
+              <div class="project-description">
+                사용자에게 필요한 복지 서비스를 쉽게 찾고 관리할 수 있도록
+                만든 사회복지 정보 플랫폼입니다.
+                즐겨찾기, 메인 화면 알람, 마이페이지 화면을 담당했습니다.
+              </div>
+
+              <div class="project-stack">
+                Java · Spring Boot · MySQL · Web Application
+              </div>
+
+              <div class="project-click">
+                VIEW PROJECT →
+              </div>
+
+            </div>
+
+
+            <div class="project-bottom">
+
+              <span class="project-tag">
+                OPEN SOURCE
+              </span>
+
+              <span class="project-year">
+                2025
+              </span>
+
+            </div>
+
+          </article>
+
+
+        </div>
+
+      </section>
+
+
+
+      <!-- =================================================
+           EXPERIENCE
+      ================================================== -->
+
+      <section
+        class="section"
+        id="experience"
+      >
+
+        <div class="section-number">
+          06
+        </div>
+
+
+        <h2 class="section-title">
+          <span class="title">
+            EXPERIENCE
+          </span>
+
+          <span class="titleLine"></span>
+        </h2>
+
+
+        <p class="experience-intro">
+          개발자로 일하며 실제 제품을 만들고 유지보수한 경험은
+          지금 새로운 분야를 배우는 데 중요한 기반이 되고 있습니다.
+          단순한 기술 나열보다 어떤 환경에서 무엇을 해결했는지를 중심으로 정리했습니다.
+        </p>
+
+
+        <!-- ===============================================
+             CAREER
+        ================================================ -->
+
+        <div class="experience-highlight">
+
+          <div class="experience-highlight-top">
+
+            <div class="experience-highlight-title">
+              Software Developer
+            </div>
+
+            <div class="experience-highlight-company">
+              트론트 · 개발부 · 대리
+            </div>
+
+          </div>
+
+
+          <div class="experience-highlight-description">
+            2021년 4월부터 2024년 5월까지 약 3년 2개월 동안
+            자동차 내비게이션 소프트웨어 개발에 참여했습니다.
+            C++ 기반 UI 개발 및 유지보수와 Java 기반 내비게이션 기능 개발을
+            경험했으며, 차량 진단과 도로 충돌 예방 알림 등의 기능을 구현했습니다.
+          </div>
+
+
+          <div class="experience-info">
+
+            <div class="experience-info-item">
+
+              <div class="experience-info-number">
+                3Y 2M
+              </div>
+
+              <div class="experience-info-label">
+                DEVELOPMENT EXPERIENCE
+              </div>
+
+            </div>
+
+
+            <div class="experience-info-item">
+
+              <div class="experience-info-number">
+                C++ / Java
+              </div>
+
+              <div class="experience-info-label">
+                CORE TECHNOLOGY
+              </div>
+
+            </div>
+
+
+            <div class="experience-info-item">
+
+              <div class="experience-info-number">
+                Automotive
+              </div>
+
+              <div class="experience-info-label">
+                PRODUCT DOMAIN
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- ===============================================
+             CAREER DETAIL
+        ================================================ -->
+
+        <div class="experience-detail">
+
+
+          <div class="experience-detail-item">
+
+            <div class="experience-detail-date">
+              2021.06 — 2023.10
+            </div>
+
+
+            <div>
+
+              <div class="experience-detail-title">
+                Navigation UI
+              </div>
+
+              <div class="experience-detail-role">
+                C++ / UI Development
+              </div>
+
+              <div class="experience-detail-description">
+                메뉴 구성, 화면 전환, 사용자 인터랙션 등
+                내비게이션 UI를 개발하고 유지보수했습니다.
+                지도 화면에서 발생하는 문제를 분석하고 수정하는 업무도 수행했습니다.
+              </div>
+
+              <div class="experience-detail-tech">
+                C++ · UI · Navigation · Debugging
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="experience-detail-item">
+
+            <div class="experience-detail-date">
+              2023.10 — 2024.05
+            </div>
+
+
+            <div>
+
+              <div class="experience-detail-title">
+                Navigation Development
+              </div>
+
+              <div class="experience-detail-role">
+                Java / Android Development
+              </div>
+
+              <div class="experience-detail-description">
+                Java 기반 내비게이션 로직과 버튼 동작,
+                차량 진단 기능, 도로 충돌 예방 알림 등을 개발했습니다.
+              </div>
+
+              <div class="experience-detail-tech">
+                Java · Android Studio · Android Automotive OS · Git
+              </div>
+
+            </div>
+
+          </div>
+
+
+        </div>
+
+
+        <!-- ===============================================
+             ACTIVITIES / AWARDS
+        ================================================ -->
+
+        <div class="experience-activity">
+
+
+          <div class="experience-activity-item">
+
+            <div class="experience-activity-date">
+              2025.07 — 2025.09
+            </div>
+
+
+            <div>
+
+              <div class="experience-activity-title">
+                2025 오픈소스 개발자대회
+              </div>
+
+              <div class="experience-activity-description">
+                사회복지 정보를 제공하는 플랫폼
+                <strong>알리온(All-e-on)</strong> 팀 프로젝트에 참여했습니다.
+                즐겨찾기, 메인 화면 알림, MyPage 기능을 담당하며
+                사용자에게 필요한 복지 서비스를 쉽게 찾고 관리할 수 있는 기능을 구현했습니다.
+              </div>
+
+              <div class="experience-activity-tech">
+                Java · Spring Boot · MySQL · Web Application
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="experience-activity-item">
+
+            <div class="experience-activity-date">
+              2020
+            </div>
+
+
+            <div>
+
+              <div class="experience-activity-title">
+                2020 YNC 메이커톤
+                <span class="experience-activity-award">
+                  AWARD
+                </span>
+              </div>
+
+              <div class="experience-activity-description">
+                아이디어를 실제 결과물로 구현하는 메이커톤에 참여하며
+                문제 해결과 프로토타이핑 경험을 쌓았습니다.
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="experience-activity-item">
+
+            <div class="experience-activity-date">
+              2018
+            </div>
+
+
+            <div>
+
+              <div class="experience-activity-title">
+                2018 컴퓨터정보과 해카톤
+                <span class="experience-activity-award">
+                  AWARD
+                </span>
+              </div>
+
+              <div class="experience-activity-description">
+                컴퓨터정보과 해카톤에 참여하여
+                제한된 시간 안에 아이디어를 구현하고 결과물을 완성하는 경험을 했습니다.
+              </div>
+
+            </div>
+
+          </div>
+
+
+        </div>
+
+      </section>
+
+
+
+      <!-- =================================================
+           CONTACT
+      ================================================== -->
+
+      <section
+        class="section contact"
+        id="contact"
+      >
+
+        <div class="section-number">
+          07
+        </div>
+
+
+        <h2 class="contact-title">
+          LET'S<br>
+          CONNECT.
+        </h2>
+
+
+        <p class="contact-description">
+          개발 경험을 기반으로 네트워크와 보안까지
+          이해하는 엔지니어로 성장하고 있습니다.
+          새로운 기술을 배우는 것에서 끝내지 않고,
+          직접 구성하고 검증하며 경험으로 만들어가고 있습니다.
+        </p>
+
+
+        <div class="contact-links">
+
+          <a
+            href="https://github.com/imdongho"
+            target="_blank"
+            rel="noopener"
+          >
+            GITHUB ↗
+          </a>
+
+        </div>
+
+      </section>
+
+
+    </main>
+
+  </div>
+
+
+
+  <!-- =====================================================
+       BACK TO TOP
+  ===================================================== -->
+
+  <button
+    type="button"
+    class="back-to-top"
+    id="backToTop"
+    aria-label="Back to top"
+    title="Back to top"
+  >
+    ↑
+  </button>
+
+
+
+  <!-- =====================================================
+       PROJECT MODAL
+  ===================================================== -->
+
+  <div
+    class="project-modal"
+    id="projectModal"
+    aria-hidden="true"
+  >
+
+    <div
+      class="project-modal-content"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modalTitle"
+    >
+
+      <button
+        type="button"
+        class="modal-close"
+        id="modalClose"
+        aria-label="Close"
+      >
+        ×
+      </button>
+
+
+      <div
+        class="modal-number"
+        id="modalNumber"
+      >
+        PROJECT 01
+      </div>
+
+
+      <h3
+        class="modal-title"
+        id="modalTitle"
+      >
+        미로게임
+      </h3>
+
+
+      <div
+        class="modal-period"
+        id="modalPeriod"
+      >
+        2020
+      </div>
+
+
+      <div class="modal-image-slider">
+
+        <button
+          type="button"
+          class="slider-button prev"
+          id="prevImage"
+          aria-label="Previous image"
+        >
+          ‹
+        </button>
+
+
+        <div class="modal-image">
+
+          <img
+            id="modalProjectImage"
+            src=""
+            alt=""
+          >
+
+          <div id="modalImagePlaceholder">
+            PROJECT IMAGE<br>
+            프로젝트 이미지를 연결하면 이 영역에 표시됩니다.
+          </div>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="slider-button next"
+          id="nextImage"
+          aria-label="Next image"
+        >
+          ›
+        </button>
+
+      </div>
+
+
+      <div
+        class="slider-counter"
+        id="sliderCounter"
+      >
+        1 / 1
+      </div>
+
+
+      <div
+        class="modal-description"
+        id="modalDescription"
+      >
+        프로젝트 설명
+      </div>
+
+
+      <div
+        class="modal-tech"
+        id="modalTech"
+      >
+        <strong>TECH</strong>
+        기술 스택
+      </div>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- =====================================================
+       JAVASCRIPT
+  ===================================================== -->
+
+  <script>
+
+    /* =====================================================
+       ACTIVE SECTION
+    ===================================================== */
+
+    const sectionOrder = [
+      "about",
+      "strengths",
+      "education",
+      "skills",
+      "projects",
+      "experience",
+      "contact"
+    ];
+
+
+    const sectionElements =
+      sectionOrder
+        .map(id => document.getElementById(id))
+        .filter(Boolean);
+
+
+    const navLinks =
+      document.querySelectorAll(".nav a");
+
+
+    function updateActiveSection() {
+
+      const triggerPoint =
+        window.innerHeight * 0.4;
+
+
+      let currentSection =
+        sectionElements[0];
+
+
+      for (const section of sectionElements) {
+
+        const rect =
+          section.getBoundingClientRect();
+
+
+        if (rect.top <= triggerPoint) {
+          currentSection = section;
+        }
+
+      }
+
+
+      const currentId =
+        currentSection.id;
+
+
+      navLinks.forEach(link => {
+
+        link.classList.toggle(
+          "active",
+          link.dataset.section === currentId
+        );
+
+      });
+
+    }
+
+
+    window.addEventListener(
+      "scroll",
+      updateActiveSection,
+      {
+        passive: true
+      }
+    );
+
+
+    window.addEventListener(
+      "resize",
+      updateActiveSection
+    );
+
+
+    window.addEventListener(
+      "load",
+      updateActiveSection
+    );
+
+
+    /* =====================================================
+       BACK TO TOP
+    ===================================================== */
+
+    const backToTop =
+      document.getElementById("backToTop");
+
+
+    function updateBackToTop() {
+
+      const scrollPosition =
+        window.innerHeight +
+        window.scrollY;
+
+
+      const documentHeight =
+        document.documentElement.scrollHeight;
+
+
+      const isNearBottom =
+        scrollPosition >=
+        documentHeight - 180;
+
+
+      backToTop.classList.toggle(
+        "show",
+        isNearBottom
+      );
+
+    }
+
+
+    window.addEventListener(
+      "scroll",
+      updateBackToTop,
+      {
+        passive: true
+      }
+    );
+
+
+    window.addEventListener(
+      "resize",
+      updateBackToTop
+    );
+
+
+    window.addEventListener(
+      "load",
+      updateBackToTop
+    );
+
+
+    backToTop.addEventListener(
+      "click",
+      () => {
+
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth"
+        });
+
+      }
+    );
+
+
+    /* =====================================================
+       PROJECT DATA
+    ===================================================== */
+
+    const projectData = {
+
+      maze: {
+
+        number: "PROJECT 01",
+
+        title: "미로게임",
+
+        period: "2020",
+
+        images: [],
+
+        description:
+          "C언어로 구현한 콘솔게임입니다. 출구를 찾으면서 등장하는 미니게임을 일정 점수 이상 통과하며 진행하는 방식이며, 미니게임2인 비행선 착륙 게임을 담당했습니다.",
+
+        tech:
+          "C · Console Game · Mini Game"
+
+      },
+
+
+      travel: {
+
+        number: "PROJECT 02",
+
+        title: "세계여행지 추천 사이트",
+
+        period: "2020",
+
+        images: [],
+
+        description:
+          "JavaScript와 XML 파싱을 직접 활용해 모바일 환경에서 세계 주요 여행지의 날씨 정보를 제공하는 개인 여행지 추천 사이트입니다.",
+
+        tech:
+          "JavaScript · XML · Weather Data"
+
+      },
+
+
+      gabolka: {
+
+        number: "PROJECT 03",
+
+        title: "관광지 추천 사이트",
+
+        period: "2020",
+
+        images: [],
+
+        description:
+          "국내 관광지를 추천하고 회원가입과 로그인을 통해 서비스를 이용할 수 있도록 구현한 웹 사이트입니다. 리뷰 게시판과 추천 아이템을 통해 사용자 의견을 공유할 수 있도록 구성했으며 회원가입과 게시판 기능을 담당했습니다.",
+
+        tech:
+          "PHP · Web · Login · Board"
+
+      },
+
+
+      puzzle: {
+
+        number: "PROJECT 04",
+
+        title: "도심 속 퍼즐 찾기",
+
+        period: "2020",
+
+        images: [],
+
+        description:
+          "공학기술교육혁신선도센터에서 진행한 미래신산업 수요특화형 VR 교육 팀 프로젝트입니다. Unity와 Steam VR을 활용하여 차량이 움직이는 도심에서 랜덤하게 생성되는 퍼즐을 찾아 퍼즐틀에 맞추는 게임을 구현했습니다.",
+
+        tech:
+          "Unity · Steam VR · VR · C#"
+
+      },
+
+
+      hearing: {
+
+        number: "PROJECT 05",
+
+        title: "청각장애 도보 보조 안경",
+
+        period: "2020",
+
+        images: [],
+
+        description:
+          "청각장애인이 주변의 큰 소리가 발생한 방향을 진동으로 인지할 수 있도록 제작한 보조 안경입니다. 아두이노를 사용하여 센서를 부착하고 App Inventor로 앱을 구현했으며 Bluetooth를 통해 실시간 사운드 측정과 진동 세기 조절 기능을 구현했습니다.",
+
+        tech:
+          "Arduino · App Inventor · Bluetooth · Sensor"
+
+      },
+
+
+      vision: {
+
+        number: "PROJECT 06",
+
+        title: "시각장애 도보 보조 안경",
+
+        period: "2020",
+
+        images: [],
+
+        description:
+          "시각장애인이 보행 중 주변 정보를 인식하고 안전하게 이동할 수 있도록 센서 기반 안내 기능을 제공하는 보조 안경입니다. Pixy 카메라를 통한 색상 인식과 Lidar 센서를 이용한 거리 측정 테스트를 진행했습니다.",
+
+        tech:
+          "Arduino · Pixy Camera · Lidar · Sensor"
+
+      },
+
+
+      taza: {
+
+        number: "PROJECT 07",
+
+        title: "타자 (TAZA)",
+
+        period: "2025",
+
+        images: [],
+
+        description:
+          "Kakao 지도와 길찾기 API를 사용하여 출발지와 목적지 및 경로를 화면에 표시하고, PortOne 가상결제 API를 이용한 결제 기능과 LocalStorage 기반 길찾기 이력 저장 기능을 구현한 웹 프로젝트입니다.",
+
+        tech:
+          "JavaScript · Kakao Maps API · Directions API · PortOne · LocalStorage"
+
+      },
+
+
+      bus: {
+
+        number: "PROJECT 08",
+
+        title: "시내 버스 정보 (대구광역시)",
+
+        period: "2025",
+
+        images: [],
+
+        description:
+          "대구 시내버스 정보를 사용자가 검색하고 검색된 버스의 노선과 정류장을 확인할 수 있도록 제작한 개인 프로젝트입니다. 공공데이터 포털 API와 Kakao Maps API를 활용했으며 최근 검색 버스 이력을 LocalStorage에 저장했습니다.",
+
+        tech:
+          "JavaScript · Public Data API · Kakao Maps API · LocalStorage"
+
+      },
+
+
+      ems: {
+
+        number: "PROJECT 09",
+
+        title: "EMS",
+
+        period: "2025",
+
+        images: [],
+
+        description:
+          "운동, 식단, InBody 정보를 효율적으로 기록하고 관리할 수 있는 웹 기반 건강관리 시스템입니다. 회원의 식단 일지를 날짜별로 기록하고 조회, 수정, 삭제할 수 있는 화면을 개발했습니다.",
+
+        tech:
+          "Java · Spring Boot · MariaDB · Thymeleaf"
+
+      },
+
+
+      rebook: {
+
+        number: "PROJECT 10",
+
+        title: "ReBook",
+
+        period: "2025",
+
+        images: [],
+
+        description:
+          "사용자 관심 키워드 기반 도서 추천과 AI 챗봇을 활용한 독서 가이드 웹 서비스입니다. 검색 화면과 리뷰 화면을 담당했으며 알라딘 도서 API에서 신규 도서 정보를 XML 형태로 수집하여 DB에 저장하고 도서 목록을 제공했습니다.",
+
+        tech:
+          "Java · Spring Boot · Aladin API · XML · Database"
+
+      },
+
+
+      "all-e-on": {
+
+        number: "PROJECT 11",
+
+        title: "알리온 (All-e-on)",
+
+        period: "2025",
+
+        images: [],
+
+        description:
+          "사용자에게 필요한 복지 서비스를 쉽게 찾고 관리할 수 있도록 만든 사회복지 정보 플랫폼입니다. 팀 프로젝트에서 즐겨찾기, 메인 화면 알람, 마이페이지 화면 개발을 담당했으며 복지 서비스 알림과 D-Day 표시, 관심 서비스 관리 등의 기능을 구현했습니다.",
+
+        tech:
+          "Java · Spring Boot · MySQL · Web Application"
+
+      }
+
+    };
+
+
+    /* =====================================================
+       MODAL ELEMENTS
+    ===================================================== */
+
+    const projectModal =
+      document.getElementById("projectModal");
+
+
+    const modalClose =
+      document.getElementById("modalClose");
+
+
+    const modalNumber =
+      document.getElementById("modalNumber");
+
+
+    const modalTitle =
+      document.getElementById("modalTitle");
+
+
+    const modalPeriod =
+      document.getElementById("modalPeriod");
+
+
+    const modalProjectImage =
+      document.getElementById("modalProjectImage");
+
+
+    const modalImagePlaceholder =
+      document.getElementById("modalImagePlaceholder");
+
+
+    const modalDescription =
+      document.getElementById("modalDescription");
+
+
+    const modalTech =
+      document.getElementById("modalTech");
+
+
+    const prevImage =
+      document.getElementById("prevImage");
+
+
+    const nextImage =
+      document.getElementById("nextImage");
+
+
+    const sliderCounter =
+      document.getElementById("sliderCounter");
+
+
+    /* =====================================================
+       CURRENT SLIDER STATE
+    ===================================================== */
+
+    let currentImages = [];
+
+    let currentImageIndex = 0;
+
+
+    /* =====================================================
+       UPDATE IMAGE
+    ===================================================== */
+
+    function updateModalImage() {
+
+      const hasImages =
+        currentImages.length > 0;
+
+
+      const hasMultipleImages =
+        currentImages.length > 1;
+
+
+      if (!hasImages) {
+
+        modalProjectImage.style.display =
+          "none";
+
+
+        modalImagePlaceholder.style.display =
+          "block";
+
+
+        prevImage.style.display =
+          "none";
+
+
+        nextImage.style.display =
+          "none";
+
+
+        sliderCounter.textContent =
+          "";
+
+        return;
+
+      }
+
+
+      modalProjectImage.style.display =
+        "block";
+
+
+      modalImagePlaceholder.style.display =
+        "none";
+
+
+      modalProjectImage.src =
+        currentImages[
+          currentImageIndex
+        ];
+
+
+      modalProjectImage.alt =
+        modalTitle.textContent;
+
+
+      sliderCounter.textContent =
+        `${currentImageIndex + 1} / ${currentImages.length}`;
+
+
+      if (hasMultipleImages) {
+
+        prevImage.style.display =
+          "flex";
+
+        nextImage.style.display =
+          "flex";
+
+      } else {
+
+        prevImage.style.display =
+          "none";
+
+        nextImage.style.display =
+          "none";
+
+      }
+
+    }
+
+
+    /* =====================================================
+       OPEN MODAL
+    ===================================================== */
+
+    function openProjectModal(projectId) {
+
+      const project =
+        projectData[projectId];
+
+
+      if (!project) {
+        return;
+      }
+
+
+      modalNumber.textContent =
+        project.number;
+
+
+      modalTitle.textContent =
+        project.title;
+
+
+      modalPeriod.textContent =
+        project.period;
+
+
+      modalDescription.textContent =
+        project.description;
+
+
+      modalTech.innerHTML =
+        `<strong>TECH</strong> ${project.tech}`;
+
+
+      currentImages =
+        project.images || [];
+
+
+      currentImageIndex =
+        0;
+
+
+      updateModalImage();
+
+
+      projectModal.classList.add(
+        "active"
+      );
+
+
+      projectModal.setAttribute(
+        "aria-hidden",
+        "false"
+      );
+
+
+      document.body.classList.add(
+        "modal-open"
+      );
+
+    }
+
+
+    /* =====================================================
+       CLOSE MODAL
+    ===================================================== */
+
+    function closeProjectModal() {
+
+      projectModal.classList.remove(
+        "active"
+      );
+
+
+      projectModal.setAttribute(
+        "aria-hidden",
+        "true"
+      );
+
+
+      document.body.classList.remove(
+        "modal-open"
+      );
+
+    }
+
+
+    /* =====================================================
+       PREVIOUS IMAGE
+    ===================================================== */
+
+    prevImage.addEventListener(
+      "click",
+      (event) => {
+
+        event.stopPropagation();
+
+
+        if (!currentImages.length) {
+          return;
+        }
+
+
+        currentImageIndex--;
+
+
+        if (currentImageIndex < 0) {
+
+          currentImageIndex =
+            currentImages.length - 1;
+
+        }
+
+
+        updateModalImage();
+
+      }
+    );
+
+
+    /* =====================================================
+       NEXT IMAGE
+    ===================================================== */
+
+    nextImage.addEventListener(
+      "click",
+      (event) => {
+
+        event.stopPropagation();
+
+
+        if (!currentImages.length) {
+          return;
+        }
+
+
+        currentImageIndex++;
+
+
+        if (
+          currentImageIndex >=
+          currentImages.length
+        ) {
+
+          currentImageIndex = 0;
+
+        }
+
+
+        updateModalImage();
+
+      }
+    );
+
+
+    /* =====================================================
+       CLOSE BUTTON
+    ===================================================== */
+
+    modalClose.addEventListener(
+      "click",
+      closeProjectModal
+    );
+
+
+    /* =====================================================
+       BACKGROUND CLICK
+    ===================================================== */
+
+    projectModal.addEventListener(
+      "click",
+      (event) => {
+
+        if (
+          event.target === projectModal
+        ) {
+
+          closeProjectModal();
+
+        }
+
+      }
+    );
+
+
+    /* =====================================================
+       ESC KEY
+    ===================================================== */
+
+    document.addEventListener(
+      "keydown",
+      (event) => {
+
+        if (
+          event.key === "Escape" &&
+          projectModal.classList.contains(
+            "active"
+          )
+        ) {
+
+          closeProjectModal();
+
+        }
+
+      }
+    );
+
+  </script>
+
+
+</body>
+</html>
