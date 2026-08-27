@@ -651,6 +651,40 @@
 
 
     /* =====================================================
+       CERTIFICATE
+    ===================================================== */
+
+    .certificate-list {
+      margin-top: 45px;
+
+      border-top: 1px solid var(--line);
+    }
+
+    .certificate-item {
+      display: flex;
+
+      justify-content: space-between;
+
+      padding: 19px 0;
+
+      border-bottom: 1px solid var(--line);
+    }
+
+    .certificate-name {
+      font-size: 13px;
+      font-weight: 500;
+
+      color: #333a45;
+    }
+
+    .certificate-date {
+      font-size: 11px;
+
+      color: #9aa0aa;
+    }
+
+
+    /* =====================================================
        SKILLS
     ===================================================== */
 
@@ -1464,7 +1498,7 @@
     }
 
     /* =====================================================
-      SIDEBAR RESPONSIVE SIZE
+       SIDEBAR RESPONSIVE SIZE
     ===================================================== */
 
     @media (max-width: 1300px) and (min-width: 1101px) {
@@ -1624,6 +1658,12 @@
 
       .project-card {
         min-height: 320px;
+      }
+
+      .certificate-item {
+        flex-direction: column;
+
+        gap: 6px;
       }
 
       .project-modal {
@@ -2143,6 +2183,40 @@
             </div>
 
           </div>
+
+        </div>
+
+
+        <div class="certificate-list">
+
+
+          <div class="certificate-item">
+
+            <div class="certificate-name">
+              정보처리기사
+            </div>
+
+
+            <div class="certificate-date">
+              2025.06
+            </div>
+
+          </div>
+
+
+          <div class="certificate-item">
+
+            <div class="certificate-name">
+              SQLD
+            </div>
+
+
+            <div class="certificate-date">
+              2025.06
+            </div>
+
+          </div>
+
 
         </div>
 
@@ -3259,7 +3333,7 @@
 
   <!-- =====================================================
        BACK TO TOP
-  ===================================================== -->
+    ===================================================== -->
 
   <button
     type="button"
@@ -3346,8 +3420,7 @@
 
 
           <div id="modalImagePlaceholder">
-            PROJECT IMAGE<br>
-            프로젝트 이미지를 연결하면 이 영역에 표시됩니다.
+            PROJECT IMAGE
           </div>
 
         </div>
