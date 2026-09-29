@@ -14,6 +14,8 @@
  *   로그아웃 POST /logout             세션 삭제 → 같은 토큰은 이후 401
  *   내 정보  GET  /me                 로그인한 계정과 패스키 정보
  *   메모     GET  /memos              로그인한 계정의 메모만
+ *            POST /memos              한 줄 메모 추가 (주인은 세션의 계정)
+ *            GET/PATCH/DELETE /memos/:id  내 메모 하나 읽기·수정·삭제 (남의 메모는 403)
  *
  * 배포할 때 "Verify JWT(JWT 검증)"는 꺼야 한다.
  * 이 함수는 Supabase 로그인 JWT가 아니라 자체 세션 토큰(Authorization: Bearer)을 직접 검사한다.
@@ -516,6 +518,73 @@ export function makeHandler(db: SupabaseClient, config: Config) {
     return json({ owner: session.username, count: memos.length, memos });
   }
 
+  function memoBody(raw: unknown): string {
+    const text = String(raw ?? '').trim();
+    if (text.length < 1 || text.length > 200) {
+      throw new HttpError(400, '메모는 1~200자로 적어 주세요.', 'bad_memo');
+    }
+    return text;
+  }
+
+  async function addMemo(req: Request) {
+    const session = await requireSession(req);
+    const body = await readJson(req);
+    // 본문에 username, user_id 같은 값을 넣어 보내도 무시한다. 주인은 세션의 계정이다 (T08-C40)
+    const memo = must(
+      await db.from('memos')
+        .insert({ user_id: session.user_id, body: memoBody(body.body) })
+        .select('id, body, created_at, updated_at')
+        .single(),
+      'add memo',
+    );
+    return json({ owner: session.username, memo }, 201);
+  }
+
+  // 메모 하나를 찾아 주인인지 확인한다. 없으면 404, 남의 것이면 403 (T08-C37, C41)
+  async function ownMemo(session: { user_id: number }, id: number) {
+    const memo = must(
+      await db.from('memos').select('id, user_id, body, created_at, updated_at').eq('id', id).maybeSingle(),
+      'read memo',
+    ) as Row | null;
+    if (!memo) throw new HttpError(404, '없는 메모입니다.', 'memo_not_found');
+    if (memo.user_id !== session.user_id) {
+      throw new HttpError(403, '다른 계정의 메모는 읽거나 바꿀 수 없습니다.', 'not_owner');
+    }
+    return memo;
+  }
+
+  async function getMemo(req: Request, id: number) {
+    const session = await requireSession(req);
+    const { user_id: _owner, ...memo } = await ownMemo(session, id);
+    return json({ owner: session.username, memo });
+  }
+
+  async function updateMemo(req: Request, id: number) {
+    const session = await requireSession(req);
+    const body = await readJson(req);
+    await ownMemo(session, id);
+    const memo = must(
+      await db.from('memos')
+        .update({ body: memoBody(body.body), updated_at: nowIso() })
+        .eq('id', id)
+        .eq('user_id', session.user_id)
+        .select('id, body, created_at, updated_at')
+        .single(),
+      'update memo',
+    );
+    return json({ owner: session.username, memo });
+  }
+
+  async function deleteMemo(req: Request, id: number) {
+    const session = await requireSession(req);
+    await ownMemo(session, id);
+    must(
+      await db.from('memos').delete().eq('id', id).eq('user_id', session.user_id),
+      'delete memo',
+    );
+    return json({ owner: session.username, deleted: { id } });
+  }
+
   // ----- 라우터 -------------------------------------------------------------
 
   function route(req: Request): Promise<Response> {
@@ -531,6 +600,14 @@ export function makeHandler(db: SupabaseClient, config: Config) {
       case 'POST /logout': return logout(req);
       case 'GET /me': return me(req);
       case 'GET /memos': return listMemos(req);
+      case 'POST /memos': return addMemo(req);
+    }
+    const memoId = path.match(/^\/memos\/(\d{1,15})$/);
+    if (memoId) {
+      const id = Number(memoId[1]);
+      if (req.method === 'GET') return getMemo(req, id);
+      if (req.method === 'PATCH') return updateMemo(req, id);
+      if (req.method === 'DELETE') return deleteMemo(req, id);
     }
     throw new HttpError(404, '없는 주소입니다.', 'not_found');
   }
