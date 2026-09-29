@@ -338,10 +338,17 @@
         method,
         headers,
         body: body !== undefined ? JSON.stringify(body) : undefined,
+        // 서버가 응답하지 않으면 20초 뒤 포기하고 안내한다
+        signal: AbortSignal.timeout(20000),
       });
     } catch (err) {
-      log(`← 연결 실패: ${err.message}`, 'bad');
-      return { status: 0, ok: false, data: { error: '서버에 연결하지 못했습니다. 잠시 뒤 다시 시도해 주세요.' } };
+      const timedOut = err.name === 'TimeoutError' || err.name === 'AbortError';
+      log(`← ${timedOut ? '응답 없음 (20초)' : `연결 실패: ${err.message}`}`, 'bad');
+      return {
+        status: 0,
+        ok: false,
+        data: { error: timedOut ? '서버가 응답하지 않습니다. 잠시 뒤 다시 시도해 주세요.' : '서버에 연결하지 못했습니다. 잠시 뒤 다시 시도해 주세요.' },
+      };
     }
     let data = null;
     try { data = await res.json(); } catch { /* 본문 없음 */ }
