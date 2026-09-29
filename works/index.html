@@ -8,6 +8,9 @@
 
   <link rel="icon" type="image/png" href="images/index/profile.png">
 
+  <!-- MY MEMO: 패스키로 잠긴 비공개 메모 (코드는 memo/ 폴더) -->
+  <link rel="stylesheet" href="memo/memo.css">
+
   <style>
 
     /* =====================================================
@@ -1929,6 +1932,14 @@
 
 
       <div class="sidebar-bottom">
+
+        <button
+          type="button"
+          class="my-memo-button"
+          data-my-memo-open
+        >
+          🔒 MY MEMO
+        </button>
 
         <a
           href="https://github.com/imdongho"
@@ -4278,6 +4289,11 @@
     );
 
   </script>
+
+
+  <!-- MY MEMO -->
+  <script src="memo/config.js"></script>
+  <script src="memo/memo.js"></script>
 
 
 </body>
