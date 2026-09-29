@@ -510,12 +510,136 @@
   // 다음 단계에서 서버와 연결할 동작
   // -------------------------------------------------------------------------
 
-  const NOT_YET = '이 기능은 다음 단계에서 서버와 연결합니다.';
+  // -------------------------------------------------------------------------
+  // 메모 추가·수정·삭제 (주인은 서버가 세션으로 정한다)
+  // -------------------------------------------------------------------------
 
-  function evidenceClicked() { setMessage(NOT_YET); }
-  function addMemo() { setMessage(NOT_YET); }
-  function saveEdit() { setMessage(NOT_YET); }
-  function deleteMemo() { setMessage(NOT_YET); }
+  function checkMemo(text) {
+    const body = String(text ?? '').trim();
+    if (!body) { setMessage('메모 내용을 적어 주세요.', 'warn'); return null; }
+    if (body.length > 200) { setMessage('메모는 200자까지 적을 수 있습니다.', 'warn'); return null; }
+    return body;
+  }
+
+  // 요청 결과가 401이면 로그인 화면으로 돌아간다
+  function handleFail(res, fallback) {
+    if (res.status === 401) { sessionEnded(); return; }
+    setMessage(res.data?.error ?? fallback, 'warn');
+  }
+
+  async function addMemo(text) {
+    const body = checkMemo(text);
+    if (body === null) return;
+    const res = await api('POST', '/memos', { body }, { bearer: state.token });
+    if (!res.ok) return handleFail(res, '메모를 저장하지 못했습니다.');
+    state.memos.push(res.data.memo);
+    render();
+    inner.querySelector('#mm-new')?.focus();
+  }
+
+  async function saveEdit(id, text) {
+    const body = checkMemo(text);
+    if (body === null) return;
+    const res = await api('PATCH', `/memos/${id}`, { body }, { bearer: state.token });
+    if (!res.ok) return handleFail(res, '메모를 고치지 못했습니다.');
+    state.memos = state.memos.map((m) => (m.id === id ? res.data.memo : m));
+    state.editingId = null;
+    render();
+  }
+
+  async function deleteMemo(id) {
+    const res = await api('DELETE', `/memos/${id}`, undefined, { bearer: state.token });
+    if (!res.ok) return handleFail(res, '메모를 지우지 못했습니다.');
+    state.memos = state.memos.filter((m) => m.id !== id);
+    state.confirmId = null;
+    render();
+  }
+
+  // -------------------------------------------------------------------------
+  // #evidence: 막혀야 하는 요청을 일부러 보내 본다 (요청·응답은 기록 창에 남는다)
+  // -------------------------------------------------------------------------
+
+  // base64url 문자열의 가운데 한 바이트를 바꾼다 (서명 변조 확인용)
+  function flipByte(b64url) {
+    const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+    const bytes = Uint8Array.from(atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4)), (c) => c.charCodeAt(0));
+    bytes[Math.floor(bytes.length / 2)] ^= 0x01;
+    return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  const EVIDENCE = {
+    // 로그인 없이 비공개 자료 요청 → 401 (T08-C16, C17)
+    async 'no-login'() {
+      logNote('확인: 세션 토큰 없이 메모 요청');
+      await api('GET', '/memos');
+    },
+
+    // 방금 로그인할 때 보낸 요청을 그대로 다시 보냄 → 401 (T08-C31)
+    async replay() {
+      logNote('확인: 이미 한 번 쓴 질문(challenge)과 서명으로 다시 로그인');
+      if (!state.lastLoginBody) {
+        return setMessage('이 탭에서 로그인한 기록이 없습니다. 새로고침 없이 로그인한 직후에 눌러 주세요.', 'warn');
+      }
+      await api('POST', '/login/verify', state.lastLoginBody);
+    },
+
+    // 새 로그인 절차를 밟되 서명을 한 바이트 바꿔 보냄 → 401 (T08-C30)
+    async tamper() {
+      logNote(`확인: 서명을 한 바이트 바꿔 로그인 (${state.username})`);
+      const opt = await api('POST', '/login/options', { username: state.username });
+      if (!opt.ok) return;
+      setMessage('패스키 창에서 확인해 주세요. 서명을 받은 뒤 일부러 망가뜨려 보냅니다.');
+      let assertion;
+      try {
+        assertion = await webauthn().startAuthentication({ optionsJSON: opt.data.options });
+      } catch (err) {
+        return setMessage(isCancel(err) ? '확인을 취소했습니다.' : `패스키 오류: ${err.message}`, 'warn');
+      }
+      assertion.response.signature = flipByte(assertion.response.signature);
+      const res = await api('POST', '/login/verify', { challengeId: opt.data.challengeId, response: assertion });
+      setMessage(res.status === 401 ? '변조된 서명은 거절되었습니다 (401).' : `예상과 다른 응답: ${res.status}`, res.status === 401 ? 'ok' : 'warn');
+    },
+
+    // 로그아웃한 뒤 같은 토큰으로 다시 요청 → 401 (T08-C33)
+    async 'old-token'() {
+      logNote('확인: 로그아웃한 세션 토큰으로 메모 요청');
+      const old = state.token;
+      await api('POST', '/logout', {}, { bearer: old });
+      state.loggedOutToken = old;
+      await api('GET', '/memos', undefined, { bearer: old });
+      clearSession();
+      setMessage('로그아웃되었습니다. 같은 토큰은 거절됩니다 (401). 다른 확인을 하려면 다시 로그인하세요.', 'ok');
+      inner.querySelectorAll('[data-test]').forEach((b) => { if (b.dataset.test !== 'no-login') b.disabled = true; });
+    },
+
+    // 주소와 본문에 다른 계정 이름을 넣어도 내 자료만 온다 (T08-C40)
+    async 'other-account'() {
+      logNote('확인: 주소와 본문에 다른 계정(someone)을 적어 요청');
+      await api('GET', '/memos?user=someone&username=someone', undefined, { bearer: state.token });
+      const res = await api('POST', '/memos', {
+        body: '(확인용) someone 계정에 쓰려고 한 메모',
+        username: 'someone',
+        user_id: 999999,
+      }, { bearer: state.token });
+      if (res.ok) {
+        logNote('확인용 메모는 내 계정(dh)에 저장되었으므로 바로 지웁니다');
+        await api('DELETE', `/memos/${res.data.memo.id}`, undefined, { bearer: state.token });
+      }
+    },
+  };
+
+  async function evidenceClicked(id) {
+    if (!state.token && id !== 'no-login') {
+      return setMessage('로그인이 필요한 확인입니다. 다시 로그인해 주세요.', 'warn');
+    }
+    const buttons = inner.querySelectorAll('[data-test]');
+    buttons.forEach((b) => { b.disabled = true; });
+    try {
+      await EVIDENCE[id]();
+    } finally {
+      buttons.forEach((b) => { b.disabled = !state.token && b.dataset.test !== 'no-login'; });
+    }
+  }
 
   async function copyLog() {
     const text = logEntries.map((e) => e.text).join('\n');
