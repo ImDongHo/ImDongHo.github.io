@@ -567,11 +567,16 @@
     return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
 
+  // 기대한 상태 코드가 왔는지 안내 줄에 적는다
+  function expect(res, want, okText) {
+    setMessage(res.status === want ? okText : `예상과 다른 응답: ${res.status}`, res.status === want ? 'ok' : 'warn');
+  }
+
   const EVIDENCE = {
     // 로그인 없이 비공개 자료 요청 → 401 (T08-C16, C17)
     async 'no-login'() {
       logNote('확인: 세션 토큰 없이 메모 요청');
-      await api('GET', '/memos');
+      expect(await api('GET', '/memos'), 401, '토큰 없이 보낸 메모 요청은 거절되었습니다 (401).');
     },
 
     // 방금 로그인할 때 보낸 요청을 그대로 다시 보냄 → 401 (T08-C31)
@@ -580,7 +585,7 @@
       if (!state.lastLoginBody) {
         return setMessage('이 탭에서 로그인한 기록이 없습니다. 새로고침 없이 로그인한 직후에 눌러 주세요.', 'warn');
       }
-      await api('POST', '/login/verify', state.lastLoginBody);
+      expect(await api('POST', '/login/verify', state.lastLoginBody), 401, '이미 쓴 질문(challenge)으로 다시 로그인하는 것은 거절되었습니다 (401).');
     },
 
     // 새 로그인 절차를 밟되 서명을 한 바이트 바꿔 보냄 → 401 (T08-C30)
@@ -597,7 +602,7 @@
       }
       assertion.response.signature = flipByte(assertion.response.signature);
       const res = await api('POST', '/login/verify', { challengeId: opt.data.challengeId, response: assertion });
-      setMessage(res.status === 401 ? '변조된 서명은 거절되었습니다 (401).' : `예상과 다른 응답: ${res.status}`, res.status === 401 ? 'ok' : 'warn');
+      expect(res, 401, '변조된 서명은 거절되었습니다 (401).');
     },
 
     // 로그아웃한 뒤 같은 토큰으로 다시 요청 → 401 (T08-C33)
@@ -606,16 +611,16 @@
       const old = state.token;
       await api('POST', '/logout', {}, { bearer: old });
       state.loggedOutToken = old;
-      await api('GET', '/memos', undefined, { bearer: old });
+      const res = await api('GET', '/memos', undefined, { bearer: old });
       clearSession();
-      setMessage('로그아웃되었습니다. 같은 토큰은 거절됩니다 (401). 다른 확인을 하려면 다시 로그인하세요.', 'ok');
+      expect(res, 401, '로그아웃되었습니다. 같은 토큰은 거절됩니다 (401). 다른 확인을 하려면 다시 로그인하세요.');
       inner.querySelectorAll('[data-test]').forEach((b) => { if (b.dataset.test !== 'no-login') b.disabled = true; });
     },
 
     // 주소와 본문에 다른 계정 이름을 넣어도 내 자료만 온다 (T08-C40)
     async 'other-account'() {
       logNote('확인: 주소와 본문에 다른 계정(someone)을 적어 요청');
-      await api('GET', '/memos?user=someone&username=someone', undefined, { bearer: state.token });
+      const list = await api('GET', '/memos?user=someone&username=someone', undefined, { bearer: state.token });
       const res = await api('POST', '/memos', {
         body: '(확인용) someone 계정에 쓰려고 한 메모',
         username: 'someone',
@@ -625,6 +630,10 @@
         logNote('확인용 메모는 내 계정(dh)에 저장되었으므로 바로 지웁니다');
         await api('DELETE', `/memos/${res.data.memo.id}`, undefined, { bearer: state.token });
       }
+      const mine = list.data?.owner === state.username && res.data?.owner === state.username;
+      setMessage(mine
+        ? `다른 계정 이름을 넣어도 무시되고, 로그인한 계정(${state.username})의 자료만 다뤄졌습니다.`
+        : '예상과 다른 응답입니다. 기록을 확인해 주세요.', mine ? 'ok' : 'warn');
     },
   };
 
@@ -634,6 +643,7 @@
     }
     const buttons = inner.querySelectorAll('[data-test]');
     buttons.forEach((b) => { b.disabled = true; });
+    setMessage('');
     try {
       await EVIDENCE[id]();
     } finally {
