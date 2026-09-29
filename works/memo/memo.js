@@ -23,6 +23,8 @@
     passkey: null,      // { name, provider, createdAt }
     editingId: null,
     confirmId: null,
+    lastLoginBody: null,   // 확인용: 방금 보낸 로그인 확인 요청 (재사용하면 거절돼야 한다)
+    loggedOutToken: null,  // 확인용: 로그아웃한 토큰 (다시 쓰면 거절돼야 한다)
   };
 
   // -------------------------------------------------------------------------
@@ -236,7 +238,9 @@
           el('label', { for: 'mm-setup-name', text: 'PASSKEY NAME' }),
           el('input', { class: 'mm-input', id: 'mm-setup-name', type: 'text', maxlength: '40', placeholder: '예: 과제8 크롬' })),
       ),
-      el('button', { type: 'button', class: 'mm-btn', text: '🔑 패스키 등록', onclick: registerClicked }),
+      el('div', { class: 'mm-tools' },
+        el('button', { type: 'button', class: 'mm-btn', id: 'mm-register', text: '🔑 패스키 등록', onclick: registerClicked }),
+        el('button', { type: 'button', class: 'mm-btn ghost', text: '기록 복사', onclick: copyLog })),
       message(),
       el('div', { class: 'mm-log', id: 'mm-log', 'aria-label': '등록 요청·응답 기록', 'data-placeholder': '등록 요청과 응답이 여기에 기록됩니다.' }),
     ];
@@ -277,29 +281,243 @@
   function render(notice) {
     const views = { login: viewLogin, memos: viewMemos, setup: viewSetup, evidence: viewEvidence };
     inner.replaceChildren(...[views[state.view](notice)].flat(3).filter(Boolean));
+    renderLog();
   }
 
   // -------------------------------------------------------------------------
-  // 동작 (서버 연결은 다음 단계에서 붙인다)
+  // 요청·응답 기록 (#setup, #evidence 화면에 보인다. 세션 토큰은 가린다 — T08-C34)
   // -------------------------------------------------------------------------
 
-  const NOT_YET = '서버 연결은 다음 단계에서 붙입니다. 지금은 화면만 준비되어 있습니다.';
+  const logEntries = [];
 
-  function loginClicked() { setMessage(NOT_YET); }
-  function registerClicked() { setMessage(NOT_YET); }
-  function evidenceClicked() { setMessage(NOT_YET); }
-  function copyLog() { setMessage(NOT_YET); }
-  function addMemo() { setMessage(NOT_YET); }
-  function saveEdit() { setMessage(NOT_YET); }
-  function deleteMemo() { setMessage(NOT_YET); }
+  const maskToken = (v) => (typeof v === 'string' && v.length > 8 ? `${v.slice(0, 6)}…(가림)` : v);
 
-  function logoutClicked() {
+  function maskDeep(data) {
+    if (Array.isArray(data)) return data.map(maskDeep);
+    if (data && typeof data === 'object') {
+      const out = {};
+      for (const [k, v] of Object.entries(data)) out[k] = k === 'token' ? maskToken(v) : maskDeep(v);
+      return out;
+    }
+    return data;
+  }
+
+  function log(text, cls) {
+    logEntries.push({ text, cls });
+    renderLog();
+  }
+
+  const logNote = (text) => log(`# ${new Date().toLocaleTimeString('ko-KR')} ${text}`, 'note');
+
+  function renderLog() {
+    const box = inner.querySelector('#mm-log');
+    if (!box) return;
+    box.replaceChildren(...logEntries.map((e) => el('div', { class: e.cls, text: e.text })));
+    box.scrollTop = box.scrollHeight;
+  }
+
+  // -------------------------------------------------------------------------
+  // 서버 요청
+  // -------------------------------------------------------------------------
+
+  async function api(method, path, body, { bearer } = {}) {
+    const headers = {};
+    if (body !== undefined) headers['Content-Type'] = 'application/json';
+    if (bearer) headers.Authorization = `Bearer ${bearer}`;
+
+    log(
+      `→ ${method} ${path}` +
+        (bearer ? `\n  Authorization: Bearer ${maskToken(bearer)}` : '') +
+        (body !== undefined ? `\n  body: ${JSON.stringify(maskDeep(body), null, 2)}` : ''),
+      'req',
+    );
+
+    let res;
+    try {
+      res = await fetch(API + path, {
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      });
+    } catch (err) {
+      log(`← 연결 실패: ${err.message}`, 'bad');
+      return { status: 0, ok: false, data: { error: '서버에 연결하지 못했습니다. 잠시 뒤 다시 시도해 주세요.' } };
+    }
+    let data = null;
+    try { data = await res.json(); } catch { /* 본문 없음 */ }
+    log(`← ${res.status}\n${JSON.stringify(maskDeep(data), null, 2)}`, res.ok ? 'ok' : 'bad');
+    return { status: res.status, ok: res.ok, data };
+  }
+
+  const webauthn = () => window.SimpleWebAuthnBrowser;
+
+  // 사용자가 패스키 창을 닫았거나 시간이 지나 취소된 경우
+  const isCancel = (err) => err && (err.name === 'NotAllowedError' || err.name === 'AbortError');
+
+  function busy(button, on) {
+    if (button) button.disabled = on;
+  }
+
+  // -------------------------------------------------------------------------
+  // 등록 (#setup)
+  // -------------------------------------------------------------------------
+
+  async function registerClicked(e) {
+    const button = e?.currentTarget;
+    const account = inner.querySelector('#mm-setup-account').value.trim().toLowerCase();
+    const name = inner.querySelector('#mm-setup-name').value.trim();
+    if (!account) return setMessage('계정 이름을 적어 주세요.', 'warn');
+    if (!name) return setMessage('패스키 이름을 적어 주세요. 목록에서 알아볼 수 있는 이름이면 됩니다.', 'warn');
+
+    busy(button, true);
+    setMessage('패스키 창을 확인해 주세요…');
+    logNote(`패스키 등록 시작 (${account})`);
+    try {
+      const opt = await api('POST', '/register/options', { username: account });
+      if (!opt.ok) return setMessage(opt.data?.error ?? '등록을 시작하지 못했습니다.', 'warn');
+
+      let attestation;
+      try {
+        attestation = await webauthn().startRegistration({ optionsJSON: opt.data.options });
+      } catch (err) {
+        // 등록을 그만두면 보관 중인 질문을 버리고, 서버에는 아무것도 저장하지 않는다 (T08-C25)
+        await api('POST', '/register/cancel', { challengeId: opt.data.challengeId });
+        if (isCancel(err)) {
+          return setMessage('패스키 등록을 취소했습니다. 서버에는 아무것도 저장되지 않았습니다.');
+        }
+        if (err.name === 'InvalidStateError') {
+          return setMessage('이 보관함에는 이미 이 계정의 패스키가 있습니다.', 'warn');
+        }
+        return setMessage(`패스키를 만들지 못했습니다: ${err.message}`, 'warn');
+      }
+
+      const ver = await api('POST', '/register/verify', {
+        challengeId: opt.data.challengeId,
+        name,
+        response: attestation,
+      });
+      if (!ver.ok) return setMessage(ver.data?.error ?? '등록 확인에 실패했습니다.', 'warn');
+
+      const s = ver.data.stored;
+      setMessage(
+        `패스키 "${s.name}" 등록 완료\n` +
+          `저장된 곳: ${s.provider}\n` +
+          `서버에 저장된 값(공개키): ${s.publicKey_COSE_base64url.slice(0, 32)}…\n` +
+          '이제 🔒 MY MEMO에서 로그인하세요.',
+        'ok',
+      );
+    } finally {
+      busy(button, false);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // 로그인 / 로그아웃
+  // -------------------------------------------------------------------------
+
+  async function loginClicked() {
+    const button = inner.querySelector('#mm-login');
+    const account = inner.querySelector('#mm-account').value.trim().toLowerCase();
+    if (!account) return setMessage('계정 이름을 적어 주세요.', 'warn');
+
+    busy(button, true);
+    setMessage('패스키 창을 확인해 주세요…');
+    logNote(`로그인 시작 (${account})`);
+    try {
+      const opt = await api('POST', '/login/options', { username: account });
+      if (!opt.ok) {
+        return setMessage(
+          opt.status === 404 ? '이 계정에 등록된 패스키가 없습니다.' : (opt.data?.error ?? '로그인을 시작하지 못했습니다.'),
+          'warn',
+        );
+      }
+
+      let assertion;
+      try {
+        assertion = await webauthn().startAuthentication({ optionsJSON: opt.data.options });
+      } catch (err) {
+        if (isCancel(err)) return setMessage('로그인을 취소했습니다.');
+        return setMessage(`패스키 확인에 실패했습니다: ${err.message}`, 'warn');
+      }
+
+      const body = { challengeId: opt.data.challengeId, response: assertion };
+      state.lastLoginBody = body; // #evidence의 "이미 쓴 질문 재사용" 확인용
+      const ver = await api('POST', '/login/verify', body);
+      if (!ver.ok) return setMessage('패스키 확인에 실패했습니다. 다시 시도해 주세요.', 'warn');
+
+      state.token = ver.data.token;
+      state.username = ver.data.username;
+      if (!(await loadPrivate())) return;
+      state.view = location.hash === '#evidence' ? 'evidence' : 'memos';
+      render();
+    } finally {
+      busy(button, false);
+    }
+  }
+
+  // 로그인한 뒤에만 서버에서 받아 오는 것: 메모와 패스키 정보
+  async function loadPrivate() {
+    const [meRes, memosRes] = [await api('GET', '/me', undefined, { bearer: state.token }),
+      await api('GET', '/memos', undefined, { bearer: state.token })];
+    if (meRes.status === 401 || memosRes.status === 401) {
+      sessionEnded();
+      return false;
+    }
+    if (!meRes.ok || !memosRes.ok) {
+      setMessage('메모를 불러오지 못했습니다. 잠시 뒤 다시 시도해 주세요.', 'warn');
+      return false;
+    }
+    state.passkey = meRes.data.passkey;
+    state.memos = memosRes.data.memos;
+    return true;
+  }
+
+  function clearSession() {
     state.token = null;
     state.username = null;
     state.memos = [];
     state.passkey = null;
+    state.editingId = null;
+    state.confirmId = null;
+  }
+
+  // 세션이 끝났거나(1시간) 서버가 401을 돌려주면 로그인 화면으로 돌아간다
+  function sessionEnded() {
+    clearSession();
+    state.view = 'login';
+    render({ text: '로그인이 끝났습니다. 패스키로 다시 들어와 주세요.', kind: 'warn' });
+  }
+
+  async function logoutClicked() {
+    if (state.token) {
+      logNote('로그아웃');
+      await api('POST', '/logout', {}, { bearer: state.token });
+      state.loggedOutToken = state.token; // #evidence의 "로그아웃한 토큰" 확인용
+    }
+    clearSession();
     state.view = 'login';
     render({ text: '로그아웃했습니다.', kind: 'ok' });
+  }
+
+  // -------------------------------------------------------------------------
+  // 다음 단계에서 서버와 연결할 동작
+  // -------------------------------------------------------------------------
+
+  const NOT_YET = '이 기능은 다음 단계에서 서버와 연결합니다.';
+
+  function evidenceClicked() { setMessage(NOT_YET); }
+  function addMemo() { setMessage(NOT_YET); }
+  function saveEdit() { setMessage(NOT_YET); }
+  function deleteMemo() { setMessage(NOT_YET); }
+
+  async function copyLog() {
+    const text = logEntries.map((e) => e.text).join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      setMessage('기록을 클립보드에 복사했습니다.', 'ok');
+    } catch {
+      setMessage('복사하지 못했습니다. 기록을 직접 선택해서 복사해 주세요.', 'warn');
+    }
   }
 
   // -------------------------------------------------------------------------

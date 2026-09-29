@@ -2,48 +2,81 @@
  * MY MEMO 패스키 서버 (Supabase Edge Function: memo)
  *
  * 과제 8 — 소개 페이지의 비공개 메모를 비밀번호 없이 패스키로만 연다.
+ * 비밀번호는 어디에도 없다. 서버가 저장하는 것은 패스키 공개키, 일회용 질문, 세션 토큰의 해시뿐이다.
  *
  * 주소: https://<project>.supabase.co/functions/v1/memo/<경로>
  *
- * 지금 단계(뼈대)에서 되는 것
- *   GET /memos  → 로그인(세션 토큰) 없이 요청하면 401
- *
- * 다음 단계에서 붙일 것
- *   등록   POST /register/options, /register/verify, /register/cancel
- *   로그인 POST /login/options, /login/verify
- *   로그아웃 POST /logout
- *   메모   GET/POST /memos, PATCH/DELETE /memos/:id
+ *   등록     POST /register/options   질문(challenge)을 만들어 DB에 보관
+ *            POST /register/verify    질문을 꺼내며 지우고, 기기 응답을 검증해 공개키만 저장
+ *            POST /register/cancel    사용자가 패스키 창을 닫으면 보관 중인 질문을 버린다
+ *   로그인   POST /login/options      매번 새 질문
+ *            POST /login/verify       저장된 공개키로 서명 확인 → 세션 토큰 발급
+ *   로그아웃 POST /logout             세션 삭제 → 같은 토큰은 이후 401
+ *   내 정보  GET  /me                 로그인한 계정과 패스키 정보
+ *   메모     GET  /memos              로그인한 계정의 메모만
  *
  * 배포할 때 "Verify JWT(JWT 검증)"는 꺼야 한다.
  * 이 함수는 Supabase 로그인 JWT가 아니라 자체 세션 토큰(Authorization: Bearer)을 직접 검사한다.
+ *
+ * 설정 (Supabase → Edge Functions → Secrets)
+ *   ALLOWED_USERS    새 계정을 만들 수 있는 이름 (쉼표로 여러 개). 예: dh
+ *   RP_ID            패스키가 묶이는 도메인. 기본값 imdongho.github.io
+ *   ALLOWED_ORIGINS  요청을 받을 사이트 주소. 기본값 https://imdongho.github.io
+ *   SUPABASE_DB_URL  Supabase가 자동으로 넣어 주는 DB 연결 주소 (코드에 넣지 않는다)
  */
 
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import postgres from 'npm:postgres@3.4.9';
+import {
+  generateAuthenticationOptions,
+  generateRegistrationOptions,
+  verifyAuthenticationResponse,
+  verifyRegistrationResponse,
+} from 'npm:@simplewebauthn/server@13.3.3';
+import { isoBase64URL } from 'npm:@simplewebauthn/server@13.3.3/helpers';
 
-// 이 출처(사이트)에서 온 브라우저 요청만 허용한다 (쉼표로 여러 개)
-const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') ?? 'https://imdongho.github.io')
-  .split(',')
-  .map((s) => s.trim())
-  .filter(Boolean);
+const CHALLENGE_TTL_SECONDS = 5 * 60; // 질문은 5분 동안만 유효
+const SESSION_TTL_SECONDS = 60 * 60;  // 세션 토큰은 1시간
+const USERNAME_RE = /^[a-z0-9-]{2,32}$/;
 
-// 서버 전용 키. Edge Function 안에서만 쓰고 브라우저로는 절대 보내지 않는다.
-function serverKey(): string | undefined {
-  const legacy = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (legacy) return legacy;
-  const custom = Deno.env.get('SERVICE_KEY');
-  if (custom) return custom;
-  try {
-    const keys = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}');
-    return keys.default ?? Object.values(keys)[0];
-  } catch {
-    return undefined;
-  }
+// 등록 결과의 AAGUID로 패스키가 어디에 저장됐는지 알려 준다 (T08-C26)
+const AAGUID_PROVIDERS: Record<string, string> = {
+  'ea9b8d66-4d01-1d21-3ce4-b6b48cb575d4': 'Google 비밀번호 관리자',
+  'adce0002-35bc-c60a-648b-0b25f1f05503': 'Chrome on Mac (기기 자체)',
+  'fbfc3007-154e-4ecc-8c0b-6e020557d7bd': 'iCloud 키체인',
+  'dd4ec289-e01d-41c9-bb89-70fa845d4bf2': 'iCloud 키체인 (관리형)',
+  '08987058-cadc-4b81-b6e1-30de50dcbe96': 'Windows Hello (기기 자체)',
+  '9ddd1817-af5a-4672-a2b9-3e3dd95000a9': 'Windows Hello (기기 자체)',
+  '6028b017-b1d4-4c02-b4b3-afcdafc96bb2': 'Windows Hello (기기 자체)',
+  '53414d53-554e-4700-0000-000000000000': 'Samsung Pass',
+  'bada5566-a7aa-401f-bd96-45619a55120d': '1Password',
+  'd548826e-79b4-db40-a3d8-11116f7e8349': 'Bitwarden',
+  '00000000-0000-0000-0000-000000000000': '알 수 없음 (보안 키이거나 제공자가 밝히지 않음)',
+};
+
+// ---------------------------------------------------------------------------
+// 설정과 DB
+// ---------------------------------------------------------------------------
+
+type Query = (text: string, params?: unknown[]) => Promise<Record<string, unknown>[]>;
+
+interface Config {
+  rpID: string;
+  rpName: string;
+  origins: string[];
+  allowedUsers: string[];
 }
 
-const key = serverKey();
-const db = key
-  ? createClient(Deno.env.get('SUPABASE_URL')!, key, { auth: { persistSession: false } })
-  : null;
+const list = (value: string | undefined, fallback: string) =>
+  (value ?? fallback).split(',').map((s) => s.trim()).filter(Boolean);
+
+function configFromEnv(): Config {
+  return {
+    rpID: Deno.env.get('RP_ID') ?? 'imdongho.github.io',
+    rpName: Deno.env.get('RP_NAME') ?? 'IM DONGHO Portfolio',
+    origins: list(Deno.env.get('ALLOWED_ORIGINS'), 'https://imdongho.github.io'),
+    allowedUsers: list(Deno.env.get('ALLOWED_USERS'), ''),
+  };
+}
 
 // ---------------------------------------------------------------------------
 // 공통 도우미
@@ -55,18 +88,6 @@ class HttpError extends Error {
   }
 }
 
-function corsHeaders(req: Request): Record<string, string> {
-  const origin = req.headers.get('Origin');
-  const headers: Record<string, string> = { Vary: 'Origin' };
-  if (origin && ALLOWED_ORIGINS.includes(origin)) {
-    headers['Access-Control-Allow-Origin'] = origin;
-    headers['Access-Control-Allow-Methods'] = 'GET, POST, PATCH, DELETE, OPTIONS';
-    headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
-    headers['Access-Control-Max-Age'] = '600';
-  }
-  return headers;
-}
-
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data, null, 2), {
     status,
@@ -74,82 +95,430 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
+function randomBase64url(bytes: number): string {
+  return isoBase64URL.fromBuffer(crypto.getRandomValues(new Uint8Array(bytes)));
+}
+
 async function sha256Hex(text: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Authorization: Bearer <세션 토큰> → 로그인한 계정. 없거나 틀리거나 만료되면 401
-async function requireSession(req: Request) {
-  const match = (req.headers.get('Authorization') ?? '').match(/^Bearer\s+([A-Za-z0-9_-]{20,})$/);
-  if (!match) {
-    throw new HttpError(401, '로그인이 필요합니다. 패스키로 먼저 들어오세요.', 'no_valid_session');
-  }
-  const { data: session } = await db!
-    .from('sessions')
-    .select('token_hash, user_id, credential_id, expires_at, users(username)')
-    .eq('token_hash', await sha256Hex(match[1]))
-    .maybeSingle();
-  if (!session || new Date(session.expires_at) < new Date()) {
-    throw new HttpError(401, '로그인이 필요합니다. 패스키로 먼저 들어오세요.', 'no_valid_session');
-  }
-  return session;
-}
-
-// ---------------------------------------------------------------------------
-// 메모 (비공개 자료)
-// ---------------------------------------------------------------------------
-
-async function listMemos(req: Request) {
-  const session = await requireSession(req);
-  // 주소에 ?user=다른계정 을 붙여도 무시한다. 누구의 자료인지는 오직 세션이 정한다
-  const { data, error } = await db!
-    .from('memos')
-    .select('id, body, created_at, updated_at')
-    .eq('user_id', session.user_id)
-    .order('id');
-  if (error) throw new HttpError(500, '메모를 읽지 못했습니다.');
-  // deno-lint-ignore no-explicit-any
-  const owner = (session as any).users?.username;
-  return json({ owner, count: data.length, memos: data });
-}
-
-// ---------------------------------------------------------------------------
-// 라우터
-// ---------------------------------------------------------------------------
-
-function route(req: Request): Promise<Response> {
-  // /functions/v1/memo/memos 또는 /memo/memos → /memos
-  const path = new URL(req.url).pathname.replace(/^.*?\/memo(?=\/|$)/, '') || '/';
-  const method = req.method;
-
-  if (method === 'GET' && path === '/') {
-    return Promise.resolve(json({ service: 'my-memo-passkey', ok: true }));
-  }
-  if (method === 'GET' && path === '/memos') return listMemos(req);
-
-  throw new HttpError(404, '없는 주소입니다.');
-}
-
-async function handle(req: Request): Promise<Response> {
-  const cors = corsHeaders(req);
-  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
-
-  let res: Response;
+async function readJson(req: Request): Promise<Record<string, unknown>> {
   try {
-    if (!db) throw new HttpError(500, '서버 키가 설정되지 않았습니다.', 'server_key_missing');
-    res = await route(req);
-  } catch (err) {
-    if (err instanceof HttpError) {
-      res = json({ error: err.message, status: err.status, reason: err.reason }, err.status);
-    } else {
-      console.error(err);
-      res = json({ error: '서버 오류', status: 500 }, 500);
-    }
-  }
-  for (const [k, v] of Object.entries(cors)) res.headers.set(k, v);
-  return res;
+    const body = await req.json();
+    if (body && typeof body === 'object') return body as Record<string, unknown>;
+  } catch { /* 아래에서 400 */ }
+  throw new HttpError(400, '요청 본문이 JSON이 아닙니다.', 'bad_json');
 }
+
+function normalizeUsername(raw: unknown): string {
+  const username = String(raw ?? '').trim().toLowerCase();
+  if (!USERNAME_RE.test(username)) {
+    throw new HttpError(400, '계정 이름은 영문 소문자·숫자·하이픈 2~32자입니다.', 'bad_username');
+  }
+  return username;
+}
+
+const providerOf = (aaguid: unknown) =>
+  AAGUID_PROVIDERS[String(aaguid)] ?? `기타 인증기 (AAGUID ${aaguid})`;
+
+// ---------------------------------------------------------------------------
+// 요청 처리기 (DB 접근 함수를 받아서 만든다 → 로컬 테스트에서도 같은 SQL을 쓴다)
+// ---------------------------------------------------------------------------
+
+export function makeHandler(query: Query, config: Config) {
+  // 만료된 질문과 세션 정리
+  async function sweep() {
+    await query('delete from challenges where expires_at < now()');
+    await query('delete from sessions where expires_at < now()');
+  }
+
+  // 질문을 꺼내면서 바로 지운다 → 같은 질문은 두 번 통하지 않는다 (T08-C31)
+  async function consumeChallenge(challengeId: unknown, kind: 'register' | 'login') {
+    if (typeof challengeId !== 'string' || !challengeId) {
+      throw new HttpError(400, 'challengeId가 없습니다.', 'no_challenge_id');
+    }
+    const [row] = await query(
+      `delete from challenges where id = $1 and kind = $2
+       returning challenge, user_id::int as user_id, username, webauthn_user_id,
+                 expires_at > now() as fresh`,
+      [challengeId, kind],
+    );
+    if (!row) {
+      throw new HttpError(401, '이미 사용했거나 존재하지 않는 질문(challenge)입니다.', 'challenge_not_found_or_used');
+    }
+    if (!row.fresh) {
+      throw new HttpError(401, '질문(challenge)이 만료되었습니다. 처음부터 다시 시도하세요.', 'challenge_expired');
+    }
+    return row;
+  }
+
+  // Authorization: Bearer <세션 토큰> → 로그인한 계정. 없거나 틀리거나 만료되면 401 (T08-C16, C17, C33)
+  async function requireSession(req: Request) {
+    const match = (req.headers.get('Authorization') ?? '').match(/^Bearer\s+([A-Za-z0-9_-]{20,})$/);
+    const rows = match
+      ? await query(
+        `select s.token_hash, s.user_id::int as user_id, s.credential_id, u.username
+           from sessions s join users u on u.id = s.user_id
+          where s.token_hash = $1 and s.expires_at > now()`,
+        [await sha256Hex(match[1])],
+      )
+      : [];
+    if (!rows[0]) {
+      throw new HttpError(401, '로그인이 필요합니다. 패스키로 먼저 들어오세요.', 'no_valid_session');
+    }
+    return rows[0] as { token_hash: string; user_id: number; credential_id: string; username: string };
+  }
+
+  async function credentialsOf(userId: number) {
+    return await query(
+      'select id, transports from credentials where user_id = $1 order by created_at',
+      [userId],
+    );
+  }
+
+  // ----- 등록 (카드 2) ------------------------------------------------------
+
+  async function registerOptions(req: Request) {
+    await sweep();
+    const body = await readJson(req);
+    const username = normalizeUsername(body.username);
+
+    // 허용된 이름이고, 아직 패스키가 하나도 없을 때만 첫 등록을 받는다
+    if (!config.allowedUsers.includes(username)) {
+      throw new HttpError(403, '이 이름으로는 계정을 만들 수 없습니다.', 'username_not_allowed');
+    }
+    const [user] = await query('select id::int as id from users where username = $1', [username]);
+    if (user && (await credentialsOf(user.id as number)).length > 0) {
+      throw new HttpError(403, '이미 패스키가 있는 계정입니다.', 'account_already_claimed');
+    }
+
+    const webauthnUserId = randomBase64url(32);
+    const options = await generateRegistrationOptions({
+      rpName: config.rpName,
+      rpID: config.rpID,
+      userName: username,
+      userDisplayName: username,
+      userID: isoBase64URL.toBuffer(webauthnUserId),
+      attestationType: 'none',
+      authenticatorSelection: { residentKey: 'preferred', userVerification: 'required' },
+      supportedAlgorithmIDs: [-7, -257],
+      timeout: CHALLENGE_TTL_SECONDS * 1000,
+    });
+
+    // 질문을 서버에 보관한다. 확인(verify)할 때 꺼내 쓰고 지운다 (T08-C19)
+    const challengeId = randomBase64url(16);
+    await query(
+      `insert into challenges (id, challenge, kind, username, webauthn_user_id, expires_at)
+       values ($1, $2, 'register', $3, $4, now() + make_interval(secs => $5))`,
+      [challengeId, options.challenge, username, webauthnUserId, CHALLENGE_TTL_SECONDS],
+    );
+    return json({ challengeId, options });
+  }
+
+  async function registerVerify(req: Request) {
+    const body = await readJson(req);
+    const row = await consumeChallenge(body.challengeId, 'register');
+
+    const name = String(body.name ?? '').trim();
+    if (name.length < 1 || name.length > 40) {
+      throw new HttpError(400, '패스키 이름은 1~40자로 적어 주세요.', 'bad_passkey_name');
+    }
+
+    let verification;
+    try {
+      verification = await verifyRegistrationResponse({
+        // deno-lint-ignore no-explicit-any
+        response: body.response as any,
+        expectedChallenge: row.challenge as string,
+        expectedOrigin: config.origins,
+        expectedRPID: config.rpID,
+        requireUserVerification: true,
+      });
+    } catch (err) {
+      throw new HttpError(400, `등록 응답 검증 실패: ${(err as Error).message}`, 'registration_verification_failed');
+    }
+    if (!verification.verified || !verification.registrationInfo) {
+      throw new HttpError(400, '등록 응답 검증 실패', 'registration_not_verified');
+    }
+
+    const username = row.username as string;
+    // 그 사이에 다른 기기가 먼저 등록했는지 한 번 더 확인
+    let [user] = await query('select id::int as id from users where username = $1', [username]);
+    if (user && (await credentialsOf(user.id as number)).length > 0) {
+      throw new HttpError(403, '그 사이에 이 계정의 패스키가 먼저 등록되었습니다.', 'account_already_claimed');
+    }
+    if (!user) {
+      [user] = await query(
+        `insert into users (username, webauthn_user_id) values ($1, $2)
+         on conflict (username) do update set username = excluded.username
+         returning id::int as id`,
+        [username, row.webauthn_user_id],
+      );
+    }
+
+    // 공개키만 저장한다. 개인키는 기기(패스키 보관함) 밖으로 나오지 않는다 (T08-C21~C23)
+    const info = verification.registrationInfo;
+    const publicKey = isoBase64URL.fromBuffer(info.credential.publicKey);
+    // deno-lint-ignore no-explicit-any
+    const transports = info.credential.transports ?? (body.response as any)?.response?.transports ?? [];
+    const [saved] = await query(
+      `insert into credentials (id, user_id, public_key, counter, transports, device_type, backed_up, aaguid, name)
+       values ($1, $2, $3, $4, string_to_array(nullif($5, ''), ','), $6, $7, $8, $9)
+       returning created_at`,
+      [
+        info.credential.id,
+        user.id,
+        publicKey,
+        info.credential.counter,
+        (transports as string[]).join(','),
+        info.credentialDeviceType,
+        info.credentialBackedUp,
+        info.aaguid,
+        name,
+      ],
+    );
+
+    // 서버가 방금 저장한 값을 그대로 돌려준다 → 저장된 것이 공개키임을 확인할 수 있다
+    return json({
+      ok: true,
+      username,
+      stored: {
+        credentialId: info.credential.id,
+        name,
+        publicKey_COSE_base64url: publicKey,
+        counter: info.credential.counter,
+        deviceType: info.credentialDeviceType,
+        backedUp: info.credentialBackedUp,
+        aaguid: info.aaguid,
+        provider: providerOf(info.aaguid),
+        createdAt: saved.created_at,
+      },
+    }, 201);
+  }
+
+  async function registerCancel(req: Request) {
+    const body = await readJson(req);
+    const rows = await query(
+      "delete from challenges where id = $1 and kind = 'register' returning id",
+      [String(body.challengeId ?? '')],
+    );
+    return json({ ok: true, discardedChallenge: rows.length > 0, stored: null });
+  }
+
+  // ----- 로그인 / 로그아웃 (카드 3) -----------------------------------------
+
+  async function loginOptions(req: Request) {
+    await sweep();
+    const body = await readJson(req);
+    const username = normalizeUsername(body.username);
+    const [user] = await query('select id::int as id from users where username = $1', [username]);
+    const creds = user ? await credentialsOf(user.id as number) : [];
+    if (!user || creds.length === 0) {
+      throw new HttpError(404, '이 계정에 등록된 패스키가 없습니다.', 'no_passkeys');
+    }
+
+    const options = await generateAuthenticationOptions({
+      rpID: config.rpID,
+      allowCredentials: creds.map((c) => ({
+        id: c.id as string,
+        // deno-lint-ignore no-explicit-any
+        transports: (c.transports as any) ?? undefined,
+      })),
+      userVerification: 'required',
+      timeout: CHALLENGE_TTL_SECONDS * 1000,
+    });
+
+    // 로그인할 때도 매번 새 질문 (T08-C27)
+    const challengeId = randomBase64url(16);
+    await query(
+      `insert into challenges (id, challenge, kind, user_id, expires_at)
+       values ($1, $2, 'login', $3, now() + make_interval(secs => $4))`,
+      [challengeId, options.challenge, user.id, CHALLENGE_TTL_SECONDS],
+    );
+    return json({ challengeId, options });
+  }
+
+  async function loginVerify(req: Request) {
+    const body = await readJson(req);
+    const row = await consumeChallenge(body.challengeId, 'login');
+
+    // deno-lint-ignore no-explicit-any
+    const response = body.response as any;
+    const [cred] = response?.id
+      ? await query(
+        `select id, user_id::int as user_id, public_key, counter::int as counter, transports, name
+           from credentials where id = $1`,
+        [String(response.id)],
+      )
+      : [];
+    if (!cred) {
+      throw new HttpError(401, '등록되지 않은(또는 삭제된) 패스키입니다.', 'unknown_credential');
+    }
+    if (cred.user_id !== row.user_id) {
+      throw new HttpError(403, '이 계정의 패스키가 아닙니다.', 'credential_belongs_to_other_user');
+    }
+
+    let verification;
+    try {
+      // 저장해 둔 공개키로 서명을 확인한다 (T08-C29)
+      verification = await verifyAuthenticationResponse({
+        response,
+        expectedChallenge: row.challenge as string,
+        expectedOrigin: config.origins,
+        expectedRPID: config.rpID,
+        credential: {
+          id: cred.id as string,
+          publicKey: isoBase64URL.toBuffer(cred.public_key as string),
+          counter: cred.counter as number,
+          // deno-lint-ignore no-explicit-any
+          transports: (cred.transports as any) ?? undefined,
+        },
+        requireUserVerification: true,
+      });
+    } catch (err) {
+      throw new HttpError(401, `서명 검증 실패: ${(err as Error).message}`, 'signature_verification_failed');
+    }
+    if (!verification.verified) {
+      throw new HttpError(401, '서명 검증 실패', 'signature_not_verified');
+    }
+
+    await query(
+      'update credentials set counter = $1, last_used_at = now() where id = $2',
+      [verification.authenticationInfo.newCounter, cred.id],
+    );
+
+    // 로그인 뒤에는 무작위 세션 토큰으로 사람을 알아본다. DB에는 해시만 저장 (T08-C32)
+    const token = randomBase64url(32);
+    const [session] = await query(
+      `insert into sessions (token_hash, user_id, credential_id, expires_at)
+       values ($1, $2, $3, now() + make_interval(secs => $4))
+       returning expires_at`,
+      [await sha256Hex(token), cred.user_id, cred.id, SESSION_TTL_SECONDS],
+    );
+    const [user] = await query('select username from users where id = $1', [cred.user_id]);
+
+    return json({
+      ok: true,
+      username: user.username,
+      passkey: cred.name,
+      token,
+      tokenType: 'Bearer',
+      expiresAt: session.expires_at,
+    });
+  }
+
+  async function logout(req: Request) {
+    const session = await requireSession(req);
+    await query('delete from sessions where token_hash = $1', [session.token_hash]);
+    return json({ ok: true, message: '로그아웃했습니다. 이 토큰은 더 이상 쓸 수 없습니다.' });
+  }
+
+  async function me(req: Request) {
+    const session = await requireSession(req);
+    const [cred] = await query(
+      `select name, aaguid, created_at, last_used_at, public_key
+         from credentials where id = $1`,
+      [session.credential_id],
+    );
+    const [{ n }] = await query(
+      'select count(*)::int as n from credentials where user_id = $1',
+      [session.user_id],
+    );
+    return json({
+      username: session.username,
+      passkeyCount: n,
+      passkey: cred && {
+        name: cred.name,
+        provider: providerOf(cred.aaguid),
+        createdAt: cred.created_at,
+        lastUsedAt: cred.last_used_at,
+        publicKey_COSE_base64url: cred.public_key,
+      },
+    });
+  }
+
+  // ----- 메모 (비공개 자료) -------------------------------------------------
+
+  async function listMemos(req: Request) {
+    const session = await requireSession(req);
+    // 주소에 ?user=다른계정 을 붙여도 무시한다. 누구의 자료인지는 오직 세션이 정한다
+    const memos = await query(
+      `select id::int as id, body, created_at, updated_at
+         from memos where user_id = $1 order by id`,
+      [session.user_id],
+    );
+    return json({ owner: session.username, count: memos.length, memos });
+  }
+
+  // ----- 라우터 -------------------------------------------------------------
+
+  function route(req: Request): Promise<Response> {
+    // /functions/v1/memo/memos 또는 /memo/memos → /memos
+    const path = new URL(req.url).pathname.replace(/^.*?\/memo(?=\/|$)/, '') || '/';
+    const key = `${req.method} ${path}`;
+
+    switch (key) {
+      case 'GET /': return Promise.resolve(json({ service: 'my-memo-passkey', ok: true }));
+      case 'POST /register/options': return registerOptions(req);
+      case 'POST /register/verify': return registerVerify(req);
+      case 'POST /register/cancel': return registerCancel(req);
+      case 'POST /login/options': return loginOptions(req);
+      case 'POST /login/verify': return loginVerify(req);
+      case 'POST /logout': return logout(req);
+      case 'GET /me': return me(req);
+      case 'GET /memos': return listMemos(req);
+    }
+    throw new HttpError(404, '없는 주소입니다.', 'not_found');
+  }
+
+  function corsHeaders(req: Request): Record<string, string> {
+    const origin = req.headers.get('Origin');
+    const headers: Record<string, string> = { Vary: 'Origin' };
+    if (origin && config.origins.includes(origin)) {
+      headers['Access-Control-Allow-Origin'] = origin;
+      headers['Access-Control-Allow-Methods'] = 'GET, POST, PATCH, DELETE, OPTIONS';
+      headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
+      headers['Access-Control-Max-Age'] = '600';
+    }
+    return headers;
+  }
+
+  return async function handle(req: Request): Promise<Response> {
+    const cors = corsHeaders(req);
+    if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+
+    let res: Response;
+    try {
+      res = await route(req);
+    } catch (err) {
+      if (err instanceof HttpError) {
+        res = json({ error: err.message, status: err.status, reason: err.reason }, err.status);
+      } else {
+        console.error(err);
+        res = json({ error: '서버 오류', status: 500 }, 500);
+      }
+    }
+    for (const [k, v] of Object.entries(cors)) res.headers.set(k, v);
+    return res;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Supabase에서 실행될 때: 자동으로 주어지는 SUPABASE_DB_URL로 DB에 연결한다
+// ---------------------------------------------------------------------------
+
+const DB_URL = Deno.env.get('SUPABASE_DB_URL');
+const sql = DB_URL ? postgres(DB_URL, { prepare: false, max: 3 }) : null;
+
+const handler = sql
+  ? makeHandler(
+    // deno-lint-ignore no-explicit-any
+    (text, params = []) => sql.unsafe(text, params as any[]) as unknown as Promise<Record<string, unknown>[]>,
+    configFromEnv(),
+  )
+  : () => Promise.resolve(json({ error: 'DB 연결 주소가 설정되지 않았습니다.', status: 500, reason: 'db_url_missing' }, 500));
 
 // Supabase Edge Runtime은 기본 내보내기의 fetch로 요청을 넘겨준다
-export default { fetch: handle };
+export default { fetch: handler };

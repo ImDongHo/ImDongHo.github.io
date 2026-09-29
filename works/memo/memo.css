@@ -336,6 +336,9 @@
 
   font-size: 12px;
   line-height: 1.7;
+  white-space: pre-line;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 
   color: #4b525d;
 }
@@ -498,6 +501,10 @@
   gap: 8px;
 
   margin-top: 18px;
+}
+
+.mm-tools .mm-btn {
+  margin-top: 0;
 }
 
 .mm-log {
