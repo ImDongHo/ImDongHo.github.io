@@ -22,10 +22,10 @@
  *   ALLOWED_USERS    새 계정을 만들 수 있는 이름 (쉼표로 여러 개). 예: dh
  *   RP_ID            패스키가 묶이는 도메인. 기본값 imdongho.github.io
  *   ALLOWED_ORIGINS  요청을 받을 사이트 주소. 기본값 https://imdongho.github.io
- *   SUPABASE_DB_URL  Supabase가 자동으로 넣어 주는 DB 연결 주소 (코드에 넣지 않는다)
+ * DB는 Supabase가 자동으로 넣어 주는 SUPABASE_URL과 서버 전용 키로 접근한다 (코드에 키를 넣지 않는다).
  */
 
-import postgres from 'npm:postgres@3.4.9';
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.58.0';
 import {
   generateAuthenticationOptions,
   generateRegistrationOptions,
@@ -34,8 +34,9 @@ import {
 } from 'npm:@simplewebauthn/server@13.3.3';
 import { isoBase64URL } from 'npm:@simplewebauthn/server@13.3.3/helpers';
 
-const CHALLENGE_TTL_SECONDS = 5 * 60; // 질문은 5분 동안만 유효
-const SESSION_TTL_SECONDS = 60 * 60;  // 세션 토큰은 1시간
+const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 질문은 5분 동안만 유효
+const SESSION_TTL_MS = 60 * 60 * 1000;  // 세션 토큰은 1시간
+const DB_TIMEOUT_MS = 10 * 1000;        // DB 요청이 이보다 오래 걸리면 포기한다
 const USERNAME_RE = /^[a-z0-9-]{2,32}$/;
 
 // 등록 결과의 AAGUID로 패스키가 어디에 저장됐는지 알려 준다 (T08-C26)
@@ -54,10 +55,8 @@ const AAGUID_PROVIDERS: Record<string, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// 설정과 DB
+// 설정
 // ---------------------------------------------------------------------------
-
-type Query = (text: string, params?: unknown[]) => Promise<Record<string, unknown>[]>;
 
 interface Config {
   rpID: string;
@@ -76,6 +75,20 @@ function configFromEnv(): Config {
     origins: list(Deno.env.get('ALLOWED_ORIGINS'), 'https://imdongho.github.io'),
     allowedUsers: list(Deno.env.get('ALLOWED_USERS'), ''),
   };
+}
+
+// 서버 전용 키. Edge Function 안에서만 쓰고 브라우저로는 절대 보내지 않는다.
+function serverKey(): string | undefined {
+  const legacy = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (legacy) return legacy;
+  const custom = Deno.env.get('SERVICE_KEY');
+  if (custom) return custom;
+  try {
+    const keys = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}');
+    return keys.default ?? Object.values(keys)[0];
+  } catch {
+    return undefined;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -104,6 +117,9 @@ async function sha256Hex(text: string): Promise<string> {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+const isoFromNow = (ms: number) => new Date(Date.now() + ms).toISOString();
+const nowIso = () => new Date().toISOString();
+
 async function readJson(req: Request): Promise<Record<string, unknown>> {
   try {
     const body = await req.json();
@@ -123,32 +139,45 @@ function normalizeUsername(raw: unknown): string {
 const providerOf = (aaguid: unknown) =>
   AAGUID_PROVIDERS[String(aaguid)] ?? `기타 인증기 (AAGUID ${aaguid})`;
 
+// DB 응답에서 오류가 있으면 500으로 바꾼다 (자세한 내용은 서버 로그에만 남긴다)
+// deno-lint-ignore no-explicit-any
+function must<T>(res: { data: T; error: any }, what: string): T {
+  if (res.error) {
+    console.error(`DB 오류 (${what}):`, res.error);
+    throw new HttpError(500, '서버 저장소 오류입니다. 잠시 뒤 다시 시도해 주세요.', 'db_error');
+  }
+  return res.data;
+}
+
+// deno-lint-ignore no-explicit-any
+type Row = Record<string, any>;
+
 // ---------------------------------------------------------------------------
-// 요청 처리기 (DB 접근 함수를 받아서 만든다 → 로컬 테스트에서도 같은 SQL을 쓴다)
+// 요청 처리기
 // ---------------------------------------------------------------------------
 
-export function makeHandler(query: Query, config: Config) {
+export function makeHandler(db: SupabaseClient, config: Config) {
   // 만료된 질문과 세션 정리
   async function sweep() {
-    await query('delete from challenges where expires_at < now()');
-    await query('delete from sessions where expires_at < now()');
+    must(await db.from('challenges').delete().lt('expires_at', nowIso()), 'sweep challenges');
+    must(await db.from('sessions').delete().lt('expires_at', nowIso()), 'sweep sessions');
   }
 
   // 질문을 꺼내면서 바로 지운다 → 같은 질문은 두 번 통하지 않는다 (T08-C31)
-  async function consumeChallenge(challengeId: unknown, kind: 'register' | 'login') {
+  async function consumeChallenge(challengeId: unknown, kind: 'register' | 'login'): Promise<Row> {
     if (typeof challengeId !== 'string' || !challengeId) {
       throw new HttpError(400, 'challengeId가 없습니다.', 'no_challenge_id');
     }
-    const [row] = await query(
-      `delete from challenges where id = $1 and kind = $2
-       returning challenge, user_id::int as user_id, username, webauthn_user_id,
-                 expires_at > now() as fresh`,
-      [challengeId, kind],
-    );
+    const rows = must(
+      await db.from('challenges').delete().eq('id', challengeId).eq('kind', kind)
+        .select('challenge, user_id, username, webauthn_user_id, expires_at'),
+      'consume challenge',
+    ) as Row[];
+    const row = rows[0];
     if (!row) {
       throw new HttpError(401, '이미 사용했거나 존재하지 않는 질문(challenge)입니다.', 'challenge_not_found_or_used');
     }
-    if (!row.fresh) {
+    if (new Date(row.expires_at) <= new Date()) {
       throw new HttpError(401, '질문(challenge)이 만료되었습니다. 처음부터 다시 시도하세요.', 'challenge_expired');
     }
     return row;
@@ -157,25 +186,39 @@ export function makeHandler(query: Query, config: Config) {
   // Authorization: Bearer <세션 토큰> → 로그인한 계정. 없거나 틀리거나 만료되면 401 (T08-C16, C17, C33)
   async function requireSession(req: Request) {
     const match = (req.headers.get('Authorization') ?? '').match(/^Bearer\s+([A-Za-z0-9_-]{20,})$/);
-    const rows = match
-      ? await query(
-        `select s.token_hash, s.user_id::int as user_id, s.credential_id, u.username
-           from sessions s join users u on u.id = s.user_id
-          where s.token_hash = $1 and s.expires_at > now()`,
-        [await sha256Hex(match[1])],
-      )
-      : [];
-    if (!rows[0]) {
+    const session = match
+      ? must(
+        await db.from('sessions')
+          .select('token_hash, user_id, credential_id, users(username)')
+          .eq('token_hash', await sha256Hex(match[1]))
+          .gt('expires_at', nowIso())
+          .maybeSingle(),
+        'read session',
+      ) as Row | null
+      : null;
+    if (!session) {
       throw new HttpError(401, '로그인이 필요합니다. 패스키로 먼저 들어오세요.', 'no_valid_session');
     }
-    return rows[0] as { token_hash: string; user_id: number; credential_id: string; username: string };
+    return {
+      token_hash: session.token_hash as string,
+      user_id: session.user_id as number,
+      credential_id: session.credential_id as string,
+      username: session.users?.username as string,
+    };
   }
 
-  async function credentialsOf(userId: number) {
-    return await query(
-      'select id, transports from credentials where user_id = $1 order by created_at',
-      [userId],
-    );
+  async function userByName(username: string): Promise<Row | null> {
+    return must(
+      await db.from('users').select('id').eq('username', username).maybeSingle(),
+      'read user',
+    ) as Row | null;
+  }
+
+  async function credentialsOf(userId: number): Promise<Row[]> {
+    return must(
+      await db.from('credentials').select('id, transports').eq('user_id', userId).order('created_at'),
+      'read credentials',
+    ) as Row[];
   }
 
   // ----- 등록 (카드 2) ------------------------------------------------------
@@ -189,8 +232,8 @@ export function makeHandler(query: Query, config: Config) {
     if (!config.allowedUsers.includes(username)) {
       throw new HttpError(403, '이 이름으로는 계정을 만들 수 없습니다.', 'username_not_allowed');
     }
-    const [user] = await query('select id::int as id from users where username = $1', [username]);
-    if (user && (await credentialsOf(user.id as number)).length > 0) {
+    const user = await userByName(username);
+    if (user && (await credentialsOf(user.id)).length > 0) {
       throw new HttpError(403, '이미 패스키가 있는 계정입니다.', 'account_already_claimed');
     }
 
@@ -204,15 +247,21 @@ export function makeHandler(query: Query, config: Config) {
       attestationType: 'none',
       authenticatorSelection: { residentKey: 'preferred', userVerification: 'required' },
       supportedAlgorithmIDs: [-7, -257],
-      timeout: CHALLENGE_TTL_SECONDS * 1000,
+      timeout: CHALLENGE_TTL_MS,
     });
 
     // 질문을 서버에 보관한다. 확인(verify)할 때 꺼내 쓰고 지운다 (T08-C19)
     const challengeId = randomBase64url(16);
-    await query(
-      `insert into challenges (id, challenge, kind, username, webauthn_user_id, expires_at)
-       values ($1, $2, 'register', $3, $4, now() + make_interval(secs => $5))`,
-      [challengeId, options.challenge, username, webauthnUserId, CHALLENGE_TTL_SECONDS],
+    must(
+      await db.from('challenges').insert({
+        id: challengeId,
+        challenge: options.challenge,
+        kind: 'register',
+        username,
+        webauthn_user_id: webauthnUserId,
+        expires_at: isoFromNow(CHALLENGE_TTL_MS),
+      }),
+      'save register challenge',
     );
     return json({ challengeId, options });
   }
@@ -231,7 +280,7 @@ export function makeHandler(query: Query, config: Config) {
       verification = await verifyRegistrationResponse({
         // deno-lint-ignore no-explicit-any
         response: body.response as any,
-        expectedChallenge: row.challenge as string,
+        expectedChallenge: row.challenge,
         expectedOrigin: config.origins,
         expectedRPID: config.rpID,
         requireUserVerification: true,
@@ -245,17 +294,18 @@ export function makeHandler(query: Query, config: Config) {
 
     const username = row.username as string;
     // 그 사이에 다른 기기가 먼저 등록했는지 한 번 더 확인
-    let [user] = await query('select id::int as id from users where username = $1', [username]);
-    if (user && (await credentialsOf(user.id as number)).length > 0) {
+    let user = await userByName(username);
+    if (user && (await credentialsOf(user.id)).length > 0) {
       throw new HttpError(403, '그 사이에 이 계정의 패스키가 먼저 등록되었습니다.', 'account_already_claimed');
     }
     if (!user) {
-      [user] = await query(
-        `insert into users (username, webauthn_user_id) values ($1, $2)
-         on conflict (username) do update set username = excluded.username
-         returning id::int as id`,
-        [username, row.webauthn_user_id],
-      );
+      user = must(
+        await db.from('users')
+          .upsert({ username, webauthn_user_id: row.webauthn_user_id }, { onConflict: 'username' })
+          .select('id')
+          .single(),
+        'create user',
+      ) as Row;
     }
 
     // 공개키만 저장한다. 개인키는 기기(패스키 보관함) 밖으로 나오지 않는다 (T08-C21~C23)
@@ -263,22 +313,20 @@ export function makeHandler(query: Query, config: Config) {
     const publicKey = isoBase64URL.fromBuffer(info.credential.publicKey);
     // deno-lint-ignore no-explicit-any
     const transports = info.credential.transports ?? (body.response as any)?.response?.transports ?? [];
-    const [saved] = await query(
-      `insert into credentials (id, user_id, public_key, counter, transports, device_type, backed_up, aaguid, name)
-       values ($1, $2, $3, $4, string_to_array(nullif($5, ''), ','), $6, $7, $8, $9)
-       returning created_at`,
-      [
-        info.credential.id,
-        user.id,
-        publicKey,
-        info.credential.counter,
-        (transports as string[]).join(','),
-        info.credentialDeviceType,
-        info.credentialBackedUp,
-        info.aaguid,
+    const saved = must(
+      await db.from('credentials').insert({
+        id: info.credential.id,
+        user_id: user.id,
+        public_key: publicKey,
+        counter: info.credential.counter,
+        transports,
+        device_type: info.credentialDeviceType,
+        backed_up: info.credentialBackedUp,
+        aaguid: info.aaguid,
         name,
-      ],
-    );
+      }).select('created_at').single(),
+      'save credential',
+    ) as Row;
 
     // 서버가 방금 저장한 값을 그대로 돌려준다 → 저장된 것이 공개키임을 확인할 수 있다
     return json({
@@ -300,10 +348,11 @@ export function makeHandler(query: Query, config: Config) {
 
   async function registerCancel(req: Request) {
     const body = await readJson(req);
-    const rows = await query(
-      "delete from challenges where id = $1 and kind = 'register' returning id",
-      [String(body.challengeId ?? '')],
-    );
+    const rows = must(
+      await db.from('challenges').delete()
+        .eq('id', String(body.challengeId ?? '')).eq('kind', 'register').select('id'),
+      'cancel register',
+    ) as Row[];
     return json({ ok: true, discardedChallenge: rows.length > 0, stored: null });
   }
 
@@ -313,29 +362,30 @@ export function makeHandler(query: Query, config: Config) {
     await sweep();
     const body = await readJson(req);
     const username = normalizeUsername(body.username);
-    const [user] = await query('select id::int as id from users where username = $1', [username]);
-    const creds = user ? await credentialsOf(user.id as number) : [];
+    const user = await userByName(username);
+    const creds = user ? await credentialsOf(user.id) : [];
     if (!user || creds.length === 0) {
       throw new HttpError(404, '이 계정에 등록된 패스키가 없습니다.', 'no_passkeys');
     }
 
     const options = await generateAuthenticationOptions({
       rpID: config.rpID,
-      allowCredentials: creds.map((c) => ({
-        id: c.id as string,
-        // deno-lint-ignore no-explicit-any
-        transports: (c.transports as any) ?? undefined,
-      })),
+      allowCredentials: creds.map((c) => ({ id: c.id, transports: c.transports ?? undefined })),
       userVerification: 'required',
-      timeout: CHALLENGE_TTL_SECONDS * 1000,
+      timeout: CHALLENGE_TTL_MS,
     });
 
     // 로그인할 때도 매번 새 질문 (T08-C27)
     const challengeId = randomBase64url(16);
-    await query(
-      `insert into challenges (id, challenge, kind, user_id, expires_at)
-       values ($1, $2, 'login', $3, now() + make_interval(secs => $4))`,
-      [challengeId, options.challenge, user.id, CHALLENGE_TTL_SECONDS],
+    must(
+      await db.from('challenges').insert({
+        id: challengeId,
+        challenge: options.challenge,
+        kind: 'login',
+        user_id: user.id,
+        expires_at: isoFromNow(CHALLENGE_TTL_MS),
+      }),
+      'save login challenge',
     );
     return json({ challengeId, options });
   }
@@ -346,13 +396,15 @@ export function makeHandler(query: Query, config: Config) {
 
     // deno-lint-ignore no-explicit-any
     const response = body.response as any;
-    const [cred] = response?.id
-      ? await query(
-        `select id, user_id::int as user_id, public_key, counter::int as counter, transports, name
-           from credentials where id = $1`,
-        [String(response.id)],
-      )
-      : [];
+    const cred = response?.id
+      ? must(
+        await db.from('credentials')
+          .select('id, user_id, public_key, counter, transports, name')
+          .eq('id', String(response.id))
+          .maybeSingle(),
+        'read credential',
+      ) as Row | null
+      : null;
     if (!cred) {
       throw new HttpError(401, '등록되지 않은(또는 삭제된) 패스키입니다.', 'unknown_credential');
     }
@@ -365,15 +417,14 @@ export function makeHandler(query: Query, config: Config) {
       // 저장해 둔 공개키로 서명을 확인한다 (T08-C29)
       verification = await verifyAuthenticationResponse({
         response,
-        expectedChallenge: row.challenge as string,
+        expectedChallenge: row.challenge,
         expectedOrigin: config.origins,
         expectedRPID: config.rpID,
         credential: {
-          id: cred.id as string,
-          publicKey: isoBase64URL.toBuffer(cred.public_key as string),
-          counter: cred.counter as number,
-          // deno-lint-ignore no-explicit-any
-          transports: (cred.transports as any) ?? undefined,
+          id: cred.id,
+          publicKey: isoBase64URL.toBuffer(cred.public_key),
+          counter: Number(cred.counter),
+          transports: cred.transports ?? undefined,
         },
         requireUserVerification: true,
       });
@@ -384,20 +435,29 @@ export function makeHandler(query: Query, config: Config) {
       throw new HttpError(401, '서명 검증 실패', 'signature_not_verified');
     }
 
-    await query(
-      'update credentials set counter = $1, last_used_at = now() where id = $2',
-      [verification.authenticationInfo.newCounter, cred.id],
+    must(
+      await db.from('credentials')
+        .update({ counter: verification.authenticationInfo.newCounter, last_used_at: nowIso() })
+        .eq('id', cred.id),
+      'update counter',
     );
 
     // 로그인 뒤에는 무작위 세션 토큰으로 사람을 알아본다. DB에는 해시만 저장 (T08-C32)
     const token = randomBase64url(32);
-    const [session] = await query(
-      `insert into sessions (token_hash, user_id, credential_id, expires_at)
-       values ($1, $2, $3, now() + make_interval(secs => $4))
-       returning expires_at`,
-      [await sha256Hex(token), cred.user_id, cred.id, SESSION_TTL_SECONDS],
+    const expiresAt = isoFromNow(SESSION_TTL_MS);
+    must(
+      await db.from('sessions').insert({
+        token_hash: await sha256Hex(token),
+        user_id: cred.user_id,
+        credential_id: cred.id,
+        expires_at: expiresAt,
+      }),
+      'save session',
     );
-    const [user] = await query('select username from users where id = $1', [cred.user_id]);
+    const user = must(
+      await db.from('users').select('username').eq('id', cred.user_id).single(),
+      'read username',
+    ) as Row;
 
     return json({
       ok: true,
@@ -405,30 +465,32 @@ export function makeHandler(query: Query, config: Config) {
       passkey: cred.name,
       token,
       tokenType: 'Bearer',
-      expiresAt: session.expires_at,
+      expiresAt,
     });
   }
 
   async function logout(req: Request) {
     const session = await requireSession(req);
-    await query('delete from sessions where token_hash = $1', [session.token_hash]);
+    must(await db.from('sessions').delete().eq('token_hash', session.token_hash), 'delete session');
     return json({ ok: true, message: '로그아웃했습니다. 이 토큰은 더 이상 쓸 수 없습니다.' });
   }
 
   async function me(req: Request) {
     const session = await requireSession(req);
-    const [cred] = await query(
-      `select name, aaguid, created_at, last_used_at, public_key
-         from credentials where id = $1`,
-      [session.credential_id],
-    );
-    const [{ n }] = await query(
-      'select count(*)::int as n from credentials where user_id = $1',
-      [session.user_id],
-    );
+    const cred = must(
+      await db.from('credentials')
+        .select('name, aaguid, created_at, last_used_at, public_key')
+        .eq('id', session.credential_id)
+        .maybeSingle(),
+      'read my credential',
+    ) as Row | null;
+    const { count, error } = await db.from('credentials')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', session.user_id);
+    must({ data: null, error }, 'count credentials');
     return json({
       username: session.username,
-      passkeyCount: n,
+      passkeyCount: count ?? 0,
       passkey: cred && {
         name: cred.name,
         provider: providerOf(cred.aaguid),
@@ -444,11 +506,13 @@ export function makeHandler(query: Query, config: Config) {
   async function listMemos(req: Request) {
     const session = await requireSession(req);
     // 주소에 ?user=다른계정 을 붙여도 무시한다. 누구의 자료인지는 오직 세션이 정한다
-    const memos = await query(
-      `select id::int as id, body, created_at, updated_at
-         from memos where user_id = $1 order by id`,
-      [session.user_id],
-    );
+    const memos = must(
+      await db.from('memos')
+        .select('id, body, created_at, updated_at')
+        .eq('user_id', session.user_id)
+        .order('id'),
+      'read memos',
+    ) as Row[];
     return json({ owner: session.username, count: memos.length, memos });
   }
 
@@ -457,9 +521,7 @@ export function makeHandler(query: Query, config: Config) {
   function route(req: Request): Promise<Response> {
     // /functions/v1/memo/memos 또는 /memo/memos → /memos
     const path = new URL(req.url).pathname.replace(/^.*?\/memo(?=\/|$)/, '') || '/';
-    const key = `${req.method} ${path}`;
-
-    switch (key) {
+    switch (`${req.method} ${path}`) {
       case 'GET /': return Promise.resolve(json({ service: 'my-memo-passkey', ok: true }));
       case 'POST /register/options': return registerOptions(req);
       case 'POST /register/verify': return registerVerify(req);
@@ -497,7 +559,10 @@ export function makeHandler(query: Query, config: Config) {
         res = json({ error: err.message, status: err.status, reason: err.reason }, err.status);
       } else {
         console.error(err);
-        res = json({ error: '서버 오류', status: 500 }, 500);
+        const timedOut = (err as Error)?.name === 'TimeoutError' || (err as Error)?.name === 'AbortError';
+        res = timedOut
+          ? json({ error: '서버 저장소가 응답하지 않습니다. 잠시 뒤 다시 시도해 주세요.', status: 503, reason: 'db_timeout' }, 503)
+          : json({ error: '서버 오류', status: 500 }, 500);
       }
     }
     for (const [k, v] of Object.entries(cors)) res.headers.set(k, v);
@@ -506,19 +571,22 @@ export function makeHandler(query: Query, config: Config) {
 }
 
 // ---------------------------------------------------------------------------
-// Supabase에서 실행될 때: 자동으로 주어지는 SUPABASE_DB_URL로 DB에 연결한다
+// Supabase에서 실행될 때: SUPABASE_URL + 서버 전용 키로 DB(REST)에 접근한다
 // ---------------------------------------------------------------------------
 
-const DB_URL = Deno.env.get('SUPABASE_DB_URL');
-const sql = DB_URL ? postgres(DB_URL, { prepare: false, max: 3 }) : null;
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+const KEY = serverKey();
 
-const handler = sql
+const handler = SUPABASE_URL && KEY
   ? makeHandler(
-    // deno-lint-ignore no-explicit-any
-    (text, params = []) => sql.unsafe(text, params as any[]) as unknown as Promise<Record<string, unknown>[]>,
+    createClient(SUPABASE_URL, KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      // DB 요청마다 시간 제한을 둬서, 저장소가 느려도 함수가 한없이 기다리지 않게 한다
+      global: { fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(DB_TIMEOUT_MS) }) },
+    }),
     configFromEnv(),
   )
-  : () => Promise.resolve(json({ error: 'DB 연결 주소가 설정되지 않았습니다.', status: 500, reason: 'db_url_missing' }, 500));
+  : () => Promise.resolve(json({ error: '서버 키가 설정되지 않았습니다.', status: 500, reason: 'server_key_missing' }, 500));
 
 // Supabase Edge Runtime은 기본 내보내기의 fetch로 요청을 넘겨준다
 export default { fetch: handler };
