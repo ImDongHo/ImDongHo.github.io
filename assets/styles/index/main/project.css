@@ -126,6 +126,18 @@
     word-break: keep-all;
 }
 
+#project > .projectBox > .aiAssignment > .projectKind {
+    position: absolute;
+    top: 0.5rem;
+    left: 5%;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    background-color: #232323e6;
+    color: #efeff1;
+    font-size: 0.75rem;
+    line-height: 1.4;
+}
+
 #project > .projectBox > .projectEmpty {
     grid-column: 1 / -1;
     margin: 0;
