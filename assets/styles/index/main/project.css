@@ -95,25 +95,55 @@
 #project > .projectTabs {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.25rem 1rem;
+    gap: 0.75rem;
     margin-top: 1.5rem;
+    padding-bottom: 1rem;
     border-bottom: 1px solid #555555;
 }
 
 #project > .projectTabs > .projectTab {
-    min-height: 2.75rem;
-    padding: 0.625rem 0.25rem;
-    border-bottom: 2px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    min-height: 3.25rem;
+    padding: 0.75rem 1.25rem;
+    border: 1px solid #5b5b5b;
+    border-radius: 0.4rem;
     background-color: transparent;
-    color: #b4b4b4;
+    color: #d5d5d5;
     font: inherit;
-    line-height: 1.5;
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
 }
 
 #project > .projectTabs > .projectTab[aria-selected="true"] {
-    border-bottom-color: #efeff1;
+    border-color: #efeff1;
+    background-color: #efeff1;
+    color: #232323;
+}
+
+#project .projectTab > .projectCount {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.75rem;
+    height: 1.5rem;
+    padding: 0 0.4rem;
+    border-radius: 0.3rem;
+    background-color: #393939;
     color: #efeff1;
+    font-size: 0.875rem;
     font-weight: 600;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+#project .projectTab[aria-selected="true"] > .projectCount {
+    background-color: #d7d7d9;
+    color: #232323;
 }
 
 #project > .projectTabs > .projectTab:focus-visible,

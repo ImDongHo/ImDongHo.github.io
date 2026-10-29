@@ -213,6 +213,11 @@ const selectProjectCategory = (tab) => {
 };
 
 $projectTabs.forEach(($tab, index) => {
+    const $count = document.createElement('span');
+    $count.className = 'projectCount';
+    $count.textContent = String($projectButtons.filter(($button) => $button.dataset.category === $tab.dataset.category).length);
+    $tab.append($count);
+
     $tab.addEventListener('click', () => selectProjectCategory($tab));
     $tab.addEventListener('keydown', (event) => {
         let nextIndex;
