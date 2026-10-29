@@ -87,6 +87,11 @@
     font-weight: 400;
 }
 
+#main > .layout-content > .body > .other-container > .other-content > .project > .projectBox > .buttonBox[data-value="personal-chicchicpokpok"] > .image {
+    object-fit: cover;
+    object-position: 55% center;
+}
+
 #project > .projectTabs {
     display: flex;
     flex-wrap: wrap;
