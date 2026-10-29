@@ -144,6 +144,42 @@ $experienceDialog.addEventListener('mouseup', (mouseupEvent) => {
 
 // project 내 버튼 클릭 시 projectDialog 표출
 const $projectDialog = document.getElementById('projectDialog');
+const $project = document.getElementById('project');
+const $projectPanel = $project.querySelector(':scope > .projectBox');
+const $projectTabs = Array.from($project.querySelectorAll(':scope > .projectTabs > .projectTab'));
+const $projectButtons = Array.from($projectPanel.querySelectorAll(':scope > .buttonBox'));
+const $projectEmpty = $projectPanel.querySelector(':scope > .projectEmpty');
+
+const selectProjectCategory = (tab) => {
+    $projectTabs.forEach(($tab) => {
+        const selected = $tab === tab;
+        $tab.setAttribute('aria-selected', String(selected));
+        $tab.tabIndex = selected ? 0 : -1;
+    });
+
+    $projectButtons.forEach(($button) => {
+        $button.hidden = $button.dataset.category !== tab.dataset.category;
+    });
+    $projectPanel.setAttribute('aria-labelledby', tab.id);
+    $projectEmpty.hidden = $projectButtons.some(($button) => !$button.hidden);
+};
+
+$projectTabs.forEach(($tab, index) => {
+    $tab.addEventListener('click', () => selectProjectCategory($tab));
+    $tab.addEventListener('keydown', (event) => {
+        let nextIndex;
+        switch (event.key) {
+            case 'ArrowRight': nextIndex = (index + 1) % $projectTabs.length; break;
+            case 'ArrowLeft': nextIndex = (index + $projectTabs.length - 1) % $projectTabs.length; break;
+            case 'Home': nextIndex = 0; break;
+            case 'End': nextIndex = $projectTabs.length - 1; break;
+            default: return;
+        }
+        event.preventDefault();
+        selectProjectCategory($projectTabs[nextIndex]);
+        $projectTabs[nextIndex].focus();
+    });
+});
 
 const showProjectDialog = (item) => {
     $projectDialog.classList.add('visible');
@@ -167,7 +203,7 @@ const hideProjectDialog = () => {
     });
 }
 
-$otherContainer.querySelectorAll(':scope > .other-content > .box.project > .projectBox > .buttonBox').forEach(($item) => {
+$projectButtons.forEach(($item) => {
     $item.addEventListener('click', () => {
         showProjectDialog($item);
     });

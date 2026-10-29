@@ -69,7 +69,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    justify-content: space-between;
+    justify-content: flex-start;
 }
 
 #main > .layout-content > .body > .other-container > .other-content > .project > .projectBox > .buttonBox > .image {
@@ -85,6 +85,54 @@
     font: inherit;
     font-size: 1.25rem;
     font-weight: 400;
+}
+
+#project > .projectTabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    margin-top: 1.5rem;
+    border-bottom: 1px solid #555555;
+}
+
+#project > .projectTabs > .projectTab {
+    min-height: 2.75rem;
+    padding: 0.625rem 0.25rem;
+    border-bottom: 2px solid transparent;
+    background-color: transparent;
+    color: #b4b4b4;
+    font: inherit;
+    line-height: 1.5;
+}
+
+#project > .projectTabs > .projectTab[aria-selected="true"] {
+    border-bottom-color: #efeff1;
+    color: #efeff1;
+    font-weight: 600;
+}
+
+#project > .projectTabs > .projectTab:focus-visible,
+#project > .projectBox:focus-visible {
+    outline: 2px solid #efeff1;
+    outline-offset: 3px;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .project > .projectBox > .buttonBox[hidden] {
+    display: none;
+}
+
+#main > .layout-content > .body > .other-container > .other-content > .project > .projectBox > .buttonBox[data-category="aleph"] > .title {
+    line-height: 1.4;
+    word-break: keep-all;
+}
+
+#project > .projectBox > .projectEmpty {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 1rem 0;
+    color: #b4b4b4;
+    font: inherit;
+    line-height: 1.5;
 }
 
 /* 화면의 가로 크기가 75rem(1200px) 이하일때만 적용할 선택자 */
