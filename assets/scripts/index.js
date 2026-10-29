@@ -2,6 +2,54 @@ const $toolButton = document.body.querySelector(':scope > .button-container');
 const $main = document.getElementById('main');
 const $otherContainer = $main.querySelector(':scope > .layout-content > .body > .other-container');
 
+// Skill & Tools 이름 표시: 마우스, 키보드, 터치 지원
+const $skillContainer = $main.querySelector('.skill-container');
+let $activeSkillIcon = null;
+let skillTooltipTimer;
+
+const closeSkillTooltip = () => {
+    clearTimeout(skillTooltipTimer);
+    $activeSkillIcon?.classList.remove('is-tooltip-open');
+    $activeSkillIcon = null;
+};
+
+const openSkillTooltip = ($icon) => {
+    closeSkillTooltip();
+    $icon.classList.add('is-tooltip-open');
+    $activeSkillIcon = $icon;
+};
+
+$skillContainer.querySelectorAll('.icon').forEach(($icon) => {
+    $icon.addEventListener('pointerenter', (event) => {
+        if (event.pointerType !== 'mouse') return;
+        clearTimeout(skillTooltipTimer);
+        skillTooltipTimer = setTimeout(() => openSkillTooltip($icon), 200);
+    });
+    $icon.addEventListener('pointerleave', (event) => {
+        if (event.pointerType !== 'mouse') return;
+        clearTimeout(skillTooltipTimer);
+        if ($activeSkillIcon === $icon && !$icon.matches(':focus-visible')) closeSkillTooltip();
+    });
+    $icon.addEventListener('focus', () => {
+        if ($icon.matches(':focus-visible')) openSkillTooltip($icon);
+    });
+    $icon.addEventListener('blur', () => {
+        if ($activeSkillIcon === $icon) closeSkillTooltip();
+    });
+    $icon.addEventListener('click', (event) => {
+        if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return;
+        if ($activeSkillIcon === $icon) closeSkillTooltip();
+        else openSkillTooltip($icon);
+    });
+});
+
+document.addEventListener('pointerdown', (event) => {
+    if (!event.target.closest('.skill-container .icon')) closeSkillTooltip();
+});
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeSkillTooltip();
+});
+
 // 메일, 연락처 버튼 클릭 시 텍스트 복사
 const copyText = (item) => {
     const text = item.querySelector(':scope > .tooltip').textContent;
