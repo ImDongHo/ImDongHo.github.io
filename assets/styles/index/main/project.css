@@ -121,7 +121,8 @@
     display: none;
 }
 
-#main > .layout-content > .body > .other-container > .other-content > .project > .projectBox > .buttonBox[data-category="aleph"] > .title {
+#main > .layout-content > .body > .other-container > .other-content > .project > .projectBox > .buttonBox[data-category="aleph"] > .title,
+#main > .layout-content > .body > .other-container > .other-content > .project > .projectBox > .buttonBox[data-category="ai"] > .title {
     line-height: 1.4;
     word-break: keep-all;
 }
